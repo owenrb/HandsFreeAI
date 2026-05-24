@@ -7,10 +7,5 @@ export const routes: Routes = [
         loadComponent: () => import('./language-coach/language-coach.component')
             .then(m => m.LanguageCoachComponent) 
     },
-    { 
-        path: 'medical-form', 
-        loadComponent: () => import('./medical-form/medical-form.component')
-            .then(m => m.MedicalFormComponent) 
-    },
     { path: '**', redirectTo: '/language-coach', pathMatch: 'full' }
 ];

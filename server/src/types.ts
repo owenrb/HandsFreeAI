@@ -22,7 +22,7 @@ export type SystemMessageTool = {
 }
 
 export type SystemMessage = {
-    type: 'language-coach' | 'medical-form' | 'medical-question-answer';
+    type: 'language-coach' ;
     initialInstructions: string;
     message: string;
     tools?: SystemMessageTool[];

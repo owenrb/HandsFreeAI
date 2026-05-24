@@ -58,4 +58,4 @@ export type Patient = {
   vitals: { temperature: number; bloodPressure: string; heartRate: number };
 }
 
-export type SystemMessageType = 'language-coach' | 'medical-form';
+export type SystemMessageType = 'language-coach' | 'software-architecture-coach' | 'agile-scrum-coach';

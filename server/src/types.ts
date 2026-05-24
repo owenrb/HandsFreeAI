@@ -22,7 +22,7 @@ export type SystemMessageTool = {
 }
 
 export type SystemMessage = {
-    type: 'language-coach' ;
+    type: 'language-coach' | 'software-architecture-coach' | 'agile-scrum-coach';
     initialInstructions: string;
     message: string;
     tools?: SystemMessageTool[];

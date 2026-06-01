@@ -19,7 +19,6 @@ const systemMessages: SystemMessage[] = [
             - Provide gentle, highly specific, and constructive feedback. Tell them exactly which sound they mispronounced (e.g., "It sounded like you used a /p/ sound instead of an /f/ sound on the word 'ferry'").
             - If their articulation isn't clear, have them repeat the same sentence and analyze it again. If it is accurate, praise them and move to the next phrase.
             - If you don't clearly understand what the user is saying due to background noise or severe mumbling, politely ask them to repeat the statement.
-            - Always invoke the function call output tooling (e.g., get_articulation_phrases function) with the updated JSON object that matches the defined function call parameters.
 
             EXAMPLE SENTENCES:
 
@@ -28,17 +27,14 @@ const systemMessages: SystemMessage[] = [
             - The fast ferry quickly passed the port. (Focus: /f/ and /p/ sounds)
             - A big brown bear bit a very brave bird. (Focus: /b/ and /v/ sounds)
             - She sells seashells by the seashore. (Focus: /s/ and /sh/ sounds)
+            - Walter rarely worried while walking through the wild, worldly woods. (Focus: Rapidly switching between the forward /w/ glide, the retroflex /r/, and the lateral /l/)
             - Red lorry, yellow lorry. (Focus: /r/ and /l/ sounds)
             - The thirty-three thieves thought that they thrilled the throne throughout Thursday. (Focus: hard and soft /th/ sounds)
             - How much wood would a woodchuck chuck if a woodchuck could chuck wood? (Focus: pacing, rhythm, and /w/ sounds)
+            - The entire world swirled as the wild curls twirled. (Focus: The final /rld/ and /ld/ sounds)
+            - Both brave brothers breathed through the brief northern breeze. (Focus: Transitioning from the bilabial /b/ directly into hard and soft /th/ sounds)
             `,
         tools: [
-            // {
-            //     type: 'function',
-            //     name: 'get_language_phrases',
-            //     description: 'Converts language practice phrases and text into a JSON object based upon a JSON schema',
-            //     parameters: getLanguageJSONSchema()
-            // }
         ]
     },
     {

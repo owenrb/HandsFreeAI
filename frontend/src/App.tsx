@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+// Coach App Main Component
 import { useRealTime } from './hooks/useRealTime'
 import type { SystemMessageType } from './types'
 import './App.css'
@@ -12,6 +13,7 @@ function Page({ label, onBack }: PageProps) {
   const [currentMessage, setCurrentMessage] = useState('');
   const [availableMicrophones, setAvailableMicrophones] = useState<MediaDeviceInfo[]>([]);
   const [selectedMicrophoneId, setSelectedMicrophoneId] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const systemMessageType: SystemMessageType = 
     label === 'Articulation Coach' ? 'language-coach' :
@@ -31,6 +33,14 @@ function Page({ label, onBack }: PageProps) {
     sendMessage,
     toggleAudio
   } = useRealTime();
+
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
 
   const getMicrophones = useCallback(async () => {
     try {
@@ -80,8 +90,8 @@ function Page({ label, onBack }: PageProps) {
   };
 
   return (
-    <div className="flex flex-col items-center min-h-screen p-8 bg-gray-50 dark:bg-gray-900">
-      <div className="w-full max-w-4xl flex justify-between items-center mb-8">
+    <div className="flex-1 w-full flex flex-col items-center pt-8 px-8 pb-2 bg-gray-50 dark:bg-gray-900 overflow-hidden">
+      <div className="w-full max-w-4xl flex justify-between items-center mb-4 shrink-0">
         <button
           onClick={onBack}
           className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
@@ -92,9 +102,9 @@ function Page({ label, onBack }: PageProps) {
         <div className="w-20"></div> {/* Spacer */}
       </div>
 
-      <div className="w-full max-w-4xl flex flex-col gap-4 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl">
+      <div className="w-full max-w-4xl flex-1 flex flex-col gap-4 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl overflow-hidden">
         {/* Toolbar Logic Implementation */}
-        <div className="flex flex-wrap gap-4 items-center justify-between border-b dark:border-gray-700 pb-4">
+        <div className="flex flex-wrap gap-4 items-center justify-between border-b dark:border-gray-700 pb-4 shrink-0">
           <div className="flex gap-2">
             <button
               onClick={handleConnect}
@@ -145,7 +155,7 @@ function Page({ label, onBack }: PageProps) {
         </div>
 
         {/* Messages Display */}
-        <div className="flex flex-col gap-4 h-96 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900 rounded-xl">
+        <div className="flex flex-col gap-4 flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900 rounded-xl">
           {messages.length === 0 && (
             <div className="text-gray-400 text-center mt-20">No messages yet. Connect to start.</div>
           )}
@@ -160,10 +170,11 @@ function Page({ label, onBack }: PageProps) {
               </div>
             </div>
           ))}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Message Input */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <input
             type="text"
             value={currentMessage}
@@ -183,7 +194,7 @@ function Page({ label, onBack }: PageProps) {
         </div>
 
         {error && (
-          <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+          <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm shrink-0">
             {error}
           </div>
         )}
@@ -200,7 +211,7 @@ function App() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-6 bg-gray-50 dark:bg-gray-900">
+    <div className="flex-1 w-full flex flex-col items-center justify-center gap-6 bg-gray-50 dark:bg-gray-900">
       <div className="flex gap-4">
         <button
           onClick={() => setActivePage('Articulation Coach')}

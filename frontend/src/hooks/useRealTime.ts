@@ -46,7 +46,7 @@ export function useRealTime() {
   const handleWSMessage = useCallback(async (message: WSMessage) => {
     switch (message.type) {
       case 'transcription':
-        if (message.id && currentUserMessageIdRef.current === message.id) {
+        if (message.id) {
           const msg = messageMapRef.current.get(message.id);
           if (msg) {
             msg.content = message.text!;
@@ -94,6 +94,20 @@ export function useRealTime() {
             setMessages(Array.from(messageMapRef.current.values()));
             break;
           }
+          case 'item_created':
+            if (message.id && currentUserMessageIdRef.current) {
+              const tempId = currentUserMessageIdRef.current;
+              const msg = messageMapRef.current.get(tempId);
+              // Only swap if it's the pending "..." message
+              if (msg && msg.content === '...') {
+                messageMapRef.current.delete(tempId);
+                msg.id = message.id;
+                messageMapRef.current.set(message.id, msg);
+                currentUserMessageIdRef.current = message.id;
+                setMessages(Array.from(messageMapRef.current.values()));
+              }
+            }
+            break;
           case 'session_created':
             isSessionCreatedRef.current = true;
             setConnectionState('connected');

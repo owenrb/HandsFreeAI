@@ -1,4 +1,4 @@
-import { SystemMessage } from "./types";
+import { SystemMessage } from "./types.js";
 
 const systemMessages: SystemMessage[] = [
     {

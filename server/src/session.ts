@@ -4,7 +4,7 @@ import { DefaultAzureCredential } from '@azure/identity';
 import { OpenAIRealtimeWS } from 'openai/beta/realtime/ws';
 import { config } from 'dotenv';
 import * as crypto from 'crypto';
-import { AudioMetrics, SystemMessage, WSMessage, OpenAIError, RateLimits } from './types';
+import { AudioMetrics, SystemMessage, WSMessage, OpenAIError, RateLimits } from './types.js';
 import { AzureOpenAI } from 'openai';
 config({ path: '../.env' });
 

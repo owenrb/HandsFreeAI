@@ -1,5 +1,5 @@
 # Build stage
-FROM node:22-slim AS build
+FROM --platform=linux/amd64 node:22-slim AS build
 
 WORKDIR /app
 
@@ -19,7 +19,7 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM nginx:alpine
+FROM --platform=linux/amd64 nginx:alpine
 
 # Copy built files from the build stage to nginx's html folder
 # Vite builds to the 'dist' directory by default

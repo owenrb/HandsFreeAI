@@ -1,20 +1,23 @@
 services:
   server:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
+    image: owenrbee/hands-free-api:latest
     ports:
       - "8080:8080"
-    env_file:
-      - .env
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL}
+      - OPENAI_ENDPOINT=${OPENAI_ENDPOINT}
+      - OPENAI_API_VERSION=${OPENAI_API_VERSION}
+      - BACKEND=${BACKEND}
+      - VAD_THRESHOLD=${VAD_THRESHOLD}
+      - SILENCE_DURATION_MS=${SILENCE_DURATION_MS}
+      - MAX_OUTPUT_TOKENS=${MAX_OUTPUT_TOKENS}
     restart: always
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    env_file:
-      - .env
+    image: owenrbee/hands-free-ux:latest
+    environment:
+      - VITE_REALTIME_URL=${VITE_REALTIME_URL}
     ports:
       - "3000:80"
     restart: always

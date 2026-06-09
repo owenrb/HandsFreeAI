@@ -101,3 +101,70 @@ If you get stuck or have any questions about building AI apps, join:
 If you have product feedback or errors while building visit:
 
 [![Azure AI Foundry Developer Forum](https://img.shields.io/badge/GitHub-Azure_AI_Foundry_Developer_Forum-blue?style=for-the-badge&logo=github&color=000000&logoColor=fff)](https://aka.ms/foundry/forum)
+
+## Deploying as ACA
+
+### Step 1
+
+```
+# Define variables
+RG_NAME="rg-hands-free"
+LOCATION="southeastasia"
+ENV_NAME="hands-free-env"
+
+# 1. Create a Resource Group
+az group create \
+  --name $RG_NAME \
+  --location $LOCATION
+
+# 2. Create the Container Apps Environment
+az containerapp env create \
+  --name $ENV_NAME \
+  --resource-group $RG_NAME \
+  --location $LOCATION
+```
+
+### Step 2: Deploy Backend
+
+```
+# 1. Read the .env file and format it into a single line of space-separated variables
+# This ignores lines starting with '#' (comments)
+ENV_VARS=$(grep -v '^#' .env | xargs)
+
+# 2. Pass the parsed string directly into the Azure CLI command
+az containerapp create \
+  --name hands-free-api \
+  --resource-group $RG_NAME \
+  --environment $ENV_NAME \
+  --image owenrbee/hands-free-api:latest \
+  --target-port 8080 \
+  --ingress external \
+  --env-vars $ENV_VARS
+```
+
+### Step 3: Deploy Frontend
+
+```
+# 4. Retrieve the auto-generated backend FQDN
+API_FQDN=$(az containerapp show \
+  --name hands-free-api \
+  --resource-group $RG_NAME \
+  --query properties.configuration.ingress.fqdn \
+  --out tsv)
+
+echo "Backend is running at: $API_FQDN"
+
+# Note: Depending on your frontend code, you may need to prefix this with https:// or wss://
+# We will assume wss:// for a realtime URL, but adjust if your app expects https://
+REALTIME_URL="wss://$API_FQDN"
+
+# 5. Deploy the frontend UX
+az containerapp create \
+  --name hands-free-ux \
+  --resource-group $RG_NAME \
+  --environment $ENV_NAME \
+  --image owenrbee/hands-free-ux:latest \
+  --target-port 80 \
+  --ingress external \
+  --env-vars VITE_REALTIME_URL="$REALTIME_URL"
+```

@@ -21,15 +21,24 @@ RUN npm run build
 # Production stage
 FROM --platform=linux/amd64 nginx:alpine
 
-# Copy built files from the build stage to nginx's html folder
-# Vite builds to the 'dist' directory by default
+# Copy built files
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Copy a custom nginx configuration if needed
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
+# 1. Add SPA routing support for Nginx
+RUN echo 'server { \
+    listen 80; \
+    location / { \
+        root /usr/share/nginx/html; \
+        index index.html; \
+        try_files $uri $uri/ /index.html; \
+    } \
+}' > /etc/nginx/conf.d/default.conf
 
-# Expose port 80
+# 2. Copy the entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 80
 
-# Start nginx
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]

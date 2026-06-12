@@ -166,5 +166,5 @@ az containerapp create \
   --image owenrbee/hands-free-ux:latest \
   --target-port 80 \
   --ingress external \
-  --env-vars VITE_REALTIME_URL="$REALTIME_URL"
+  --env-vars REALTIME_BFF_URL="$REALTIME_URL"
 ```

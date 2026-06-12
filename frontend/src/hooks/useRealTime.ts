@@ -194,7 +194,7 @@ export function useRealTime() {
 
     try {
       await initAudio();
-      const socketUrl = import.meta.env.VITE_REALTIME_URL || 'ws://localhost:8080/realtime';
+      const socketUrl = (window as any).REALTIME_BFF_URL || 'ws://localhost:8080/realtime';
       const socket = new WebSocket(socketUrl);
       socket.binaryType = 'arraybuffer';
       

@@ -17,7 +17,7 @@ services:
   frontend:
     image: owenrbee/hands-free-ux:latest
     environment:
-      - VITE_REALTIME_URL=${VITE_REALTIME_URL}
+      - REALTIME_BFF_URL=${REALTIME_URL}
     ports:
       - "3000:80"
     restart: always

@@ -10,7 +10,6 @@ interface PageProps {
 }
 
 function Page({ label, onBack }: PageProps) {
-  const [currentMessage, setCurrentMessage] = useState('');
   const [availableMicrophones, setAvailableMicrophones] = useState<MediaDeviceInfo[]>([]);
   const [selectedMicrophoneId, setSelectedMicrophoneId] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -24,14 +23,9 @@ function Page({ label, onBack }: PageProps) {
     connectionState,
     messages,
     isRecording,
-    isAudioOn,
     error,
     connect,
-    disconnect,
     startRecording,
-    stopRecording,
-    sendMessage,
-    toggleAudio
   } = useRealTime();
 
   const scrollToBottom = useCallback(() => {
@@ -64,30 +58,21 @@ function Page({ label, onBack }: PageProps) {
     void init();
   }, [getMicrophones]);
 
-  const handleConnect = async () => {
-    if (connectionState === 'connected') {
-      await disconnect();
-    } else {
-      await connect(systemMessageType);
+  // Auto-connect on mount
+  useEffect(() => {
+    if (connectionState === 'disconnected') {
+      void connect(systemMessageType);
     }
-  };
+  }, [connectionState, connect, systemMessageType]);
 
-  const handleToggleRecording = async () => {
-    if (isRecording) {
-      await stopRecording();
-    } else {
-      await startRecording({
-        audio: { deviceId: selectedMicrophoneId ? { exact: selectedMicrophoneId } : undefined }
+  // Auto-start recording when connected
+  useEffect(() => {
+    if (connectionState === 'connected' && !isRecording && selectedMicrophoneId) {
+      void startRecording({
+        audio: { deviceId: { exact: selectedMicrophoneId } }
       });
     }
-  };
-
-  const handleSendMessage = async () => {
-    if (currentMessage.trim()) {
-      await sendMessage(currentMessage);
-      setCurrentMessage('');
-    }
-  };
+  }, [connectionState, isRecording, selectedMicrophoneId, startRecording]);
 
   return (
     <div className="flex-1 w-full flex flex-col items-center pt-8 px-8 pb-2 bg-gray-50 dark:bg-gray-900 overflow-hidden">
@@ -99,51 +84,34 @@ function Page({ label, onBack }: PageProps) {
           ← Back
         </button>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{label}</h1>
-        <div className="w-20"></div> {/* Spacer */}
+        <div className="flex items-center gap-3">
+          <div className={`w-3 h-3 rounded-full ${
+            connectionState === 'connected' ? 'bg-green-500 animate-pulse' : 
+            connectionState === 'connecting' ? 'bg-yellow-500 animate-pulse' : 'bg-red-500'
+          }`} />
+          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            {connectionState === 'connected' ? 'Live' : connectionState === 'connecting' ? 'Connecting...' : 'Disconnected'}
+          </span>
+        </div>
       </div>
 
       <div className="w-full max-w-4xl flex-1 flex flex-col gap-4 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl overflow-hidden">
-        {/* Toolbar Logic Implementation */}
+        {/* Toolbar - simplified for hands-free */}
         <div className="flex flex-wrap gap-4 items-center justify-between border-b dark:border-gray-700 pb-4 shrink-0">
-          <div className="flex gap-2">
-            <button
-              onClick={handleConnect}
-              className={`px-4 py-2 rounded-lg font-semibold transition ${
-                connectionState === 'connected' 
-                  ? 'bg-red-500 hover:bg-red-600 text-white' 
-                  : 'bg-green-500 hover:bg-green-600 text-white'
-              }`}
-            >
-              {connectionState === 'connected' ? 'Disconnect' : connectionState === 'connecting' ? 'Connecting...' : 'Connect'}
-            </button>
-
-            <button
-              onClick={handleToggleRecording}
-              disabled={connectionState !== 'connected'}
-              className={`px-4 py-2 rounded-lg font-semibold transition ${
-                isRecording 
-                  ? 'bg-orange-500 hover:bg-orange-600 text-white' 
-                  : 'bg-blue-500 hover:bg-blue-600 text-white'
-              } disabled:opacity-50`}
-            >
-              {isRecording ? 'Stop Recording' : 'Start Recording'}
-            </button>
-
-            <button
-              onClick={toggleAudio}
-              className={`px-4 py-2 rounded-lg font-semibold transition ${
-                isAudioOn ? 'bg-gray-200 dark:bg-gray-700' : 'bg-yellow-500 text-white'
-              }`}
-            >
-              {isAudioOn ? 'Audio On' : 'Audio Off'}
-            </button>
+          <div className="flex items-center gap-4">
+            {isRecording && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full text-sm font-bold">
+                <div className="w-2 h-2 bg-red-600 rounded-full animate-ping" />
+                Listening
+              </div>
+            )}
           </div>
 
           {availableMicrophones.length > 1 && (
             <select
               value={selectedMicrophoneId}
               onChange={(e) => setSelectedMicrophoneId(e.target.value)}
-              className="px-3 py-2 rounded-lg border dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              className="px-3 py-2 rounded-lg border dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm"
             >
               {availableMicrophones.map(mic => (
                 <option key={mic.deviceId} value={mic.deviceId}>
@@ -156,8 +124,11 @@ function Page({ label, onBack }: PageProps) {
 
         {/* Messages Display */}
         <div className="flex flex-col gap-4 flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900 rounded-xl">
-          {messages.length === 0 && (
-            <div className="text-gray-400 text-center mt-20">No messages yet. Connect to start.</div>
+          {messages.length === 0 && connectionState === 'connected' && (
+            <div className="text-gray-400 text-center mt-20">Start speaking to begin your session.</div>
+          )}
+          {messages.length === 0 && connectionState !== 'connected' && (
+            <div className="text-gray-400 text-center mt-20">Connecting to coach...</div>
           )}
           {messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -171,26 +142,6 @@ function Page({ label, onBack }: PageProps) {
             </div>
           ))}
           <div ref={messagesEndRef} />
-        </div>
-
-        {/* Message Input */}
-        <div className="flex gap-2 shrink-0">
-          <input
-            type="text"
-            value={currentMessage}
-            onChange={(e) => setCurrentMessage(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder="Type a message..."
-            disabled={connectionState !== 'connected'}
-            className="flex-1 px-4 py-2 rounded-lg border dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-          />
-          <button
-            onClick={handleSendMessage}
-            disabled={connectionState !== 'connected' || !currentMessage.trim()}
-            className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-          >
-            Send
-          </button>
         </div>
 
         {error && (

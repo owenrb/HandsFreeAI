@@ -11,7 +11,6 @@ export function useRealTime() {
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isRecording, setIsRecording] = useState(false);
-  const [isAudioOn, setIsAudioOn] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const socketRef = useRef<WebSocket | null>(null);
@@ -174,9 +173,18 @@ export function useRealTime() {
   }, []);
 
   const disconnect = useCallback(async () => {
-    if (socketRef.current) socketRef.current.close();
-    if (mediaStreamRef.current) mediaStreamRef.current.getTracks().forEach(t => t.stop());
-    if (recorderNodeRef.current) recorderNodeRef.current.disconnect();
+    if (socketRef.current) {
+      socketRef.current.close();
+      socketRef.current = null;
+    }
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(t => t.stop());
+      mediaStreamRef.current = null;
+    }
+    if (recorderNodeRef.current) {
+      recorderNodeRef.current.disconnect();
+      recorderNodeRef.current = null;
+    }
     
     messageMapRef.current.clear();
     currentUserMessageIdRef.current = null;
@@ -185,7 +193,6 @@ export function useRealTime() {
     setConnectionState('disconnected');
     setMessages([]);
     setIsRecording(false);
-    setIsAudioOn(true);
   }, []);
 
   const connect = useCallback(async (systemMessageType: SystemMessageType) => {
@@ -197,28 +204,43 @@ export function useRealTime() {
       const socketUrl = (window as any).REALTIME_BFF_URL || 'ws://localhost:8080/realtime';
       const socket = new WebSocket(socketUrl);
       socket.binaryType = 'arraybuffer';
+      socketRef.current = socket; // Set immediately to allow disconnect() to close it
       
       socket.onopen = () => {
+        if (socketRef.current !== socket) {
+          socket.close();
+          return;
+        }
         socket.send(JSON.stringify({ type: 'init', systemMessageType }));
       };
       
       socket.onmessage = async (event) => {
+        if (socketRef.current !== socket) return;
+        
         if (event.data instanceof ArrayBuffer) {
-          if (isAudioOn) playAudio(new Int16Array(event.data));
+          playAudio(new Int16Array(event.data));
         } else {
           handleWSMessage(JSON.parse(event.data));
         }
       };
       
-      socket.onclose = () => setConnectionState('disconnected');
-      socket.onerror = (e) => logError('WebSocket error:', e);
+      socket.onclose = () => {
+        if (socketRef.current === socket) {
+          setConnectionState('disconnected');
+        }
+      };
       
-      socketRef.current = socket;
+      socket.onerror = (e) => {
+        if (socketRef.current === socket) {
+          logError('WebSocket error:', e);
+          setConnectionState('disconnected');
+        }
+      };
     } catch (e) {
       logError('Connection failed:', e);
       setConnectionState('disconnected');
     }
-  }, [disconnect, initAudio, isAudioOn, handleWSMessage, playAudio, logError]);
+  }, [disconnect, initAudio, handleWSMessage, playAudio, logError]);
 
   const startRecording = useCallback(async (constraints?: MediaStreamConstraints) => {
     if (isRecording || connectionState !== 'connected' || !audioContextRef.current) return;
@@ -254,17 +276,6 @@ export function useRealTime() {
     setIsRecording(false);
   }, []);
 
-  const sendMessage = useCallback(async (content: string) => {
-    if (content && connectionState === 'connected' && socketRef.current) {
-      const id = `user-${Date.now()}`;
-      const newMessage: Message = { id, type: 'user', content };
-      setMessages(prev => [...prev, newMessage]);
-      socketRef.current.send(JSON.stringify({ type: 'user_message', text: content }));
-    }
-  }, [connectionState]);
-
-  const toggleAudio = useCallback(() => setIsAudioOn(prev => !prev), []);
-
   useEffect(() => {
     return () => { disconnect(); };
   }, [disconnect]);
@@ -273,13 +284,10 @@ export function useRealTime() {
     connectionState,
     messages,
     isRecording,
-    isAudioOn,
     error,
     connect,
     disconnect,
     startRecording,
     stopRecording,
-    sendMessage,
-    toggleAudio
   };
 }

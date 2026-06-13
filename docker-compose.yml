@@ -12,12 +12,17 @@ services:
       - VAD_THRESHOLD=${VAD_THRESHOLD}
       - SILENCE_DURATION_MS=${SILENCE_DURATION_MS}
       - MAX_OUTPUT_TOKENS=${MAX_OUTPUT_TOKENS}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - ALLOWED_GMAIL_ACCOUNTS=${ALLOWED_GMAIL_ACCOUNTS}
+      - SESSION_KEY=${SESSION_KEY}
+      - FRONTEND_URL=${FRONTEND_URL}
     restart: always
 
   frontend:
     image: owenrbee/hands-free-ux:latest
     environment:
-      - REALTIME_BFF_URL=${REALTIME_URL}
+      - BACKEND_URL=http://server:8080
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
     ports:
       - "3000:80"
     restart: always

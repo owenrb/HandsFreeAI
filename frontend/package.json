@@ -1,7 +1,8 @@
 {
   "name": "frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.1.0",
+  "description": "Realtime OpenAI demo showing real-time text and speech. Learn a language or complete a form using your voice. + Security",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -11,7 +12,9 @@
     "start": "NODE_ENV=production tsx server.ts"
   },
   "dependencies": {
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "http-proxy-middleware": "^3.0.6",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "uuid": "^14.0.0",

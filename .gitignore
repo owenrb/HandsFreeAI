@@ -26,3 +26,5 @@ cypress/screenshots/
 
 tsconfig.tsbuildinfo
 .DS_Store
+frontend/package-lock.json
+server/package-lock.json

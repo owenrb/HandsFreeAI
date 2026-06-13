@@ -4,7 +4,7 @@ import { DefaultAzureCredential } from '@azure/identity';
 import { OpenAIRealtimeWS } from 'openai/beta/realtime/ws';
 import { config } from 'dotenv';
 import * as crypto from 'crypto';
-import { AudioMetrics, SystemMessage, WSMessage, OpenAIError, RateLimits } from './types';
+import { AudioMetrics, SystemMessage, WSMessage, OpenAIError, RateLimits } from './types.js';
 import { AzureOpenAI } from 'openai';
 config({ path: '../.env' });
 
@@ -339,11 +339,17 @@ export class RTSession {
           });
         },
 
-        [REALTIME_SERVER_EVENTS.ConversationItemCreated]: (event) =>
-          this.logger.debug({ item: event.item }, '✅ Conversation item created'),
+        [REALTIME_SERVER_EVENTS.ConversationItemCreated]: (event) => {
+          this.logger.debug({ item: event.item }, '✅ Conversation item created');
+          if (event.item?.type === 'message' && event.item?.role === 'user') {
+            this.send({ type: 'control', action: 'item_created', id: event.item.id });
+          }
+        },
 
-        [REALTIME_SERVER_EVENTS.ConversationItemInputAudioTranscriptionCompleted]: (event) =>
-          this.logger.debug({ item_id: event.item_id, transcript: event.transcript }, '✅ Transcription completed'),
+        [REALTIME_SERVER_EVENTS.ConversationItemInputAudioTranscriptionCompleted]: (event) => {
+          this.logger.debug({ item_id: event.item_id, transcript: event.transcript }, '✅ Transcription completed');
+          this.send({ type: 'transcription', text: event.transcript, id: event.item_id });
+        },
 
         [REALTIME_SERVER_EVENTS.ConversationItemInputAudioTranscriptionFailed]: (event) =>
           this.logger.error({ error: event.error }, '🔥 Transcription failed'),

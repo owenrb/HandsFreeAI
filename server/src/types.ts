@@ -3,7 +3,7 @@ export type WSMessage =
     | { id: string; type: 'text_delta'; delta: string }
     | { id?: string; type: 'transcription'; text: string }
     | { id: string; type: 'user_message'; text: string }
-    | { type: 'control'; action: 'speech_started' | 'connected' | 'text_done' | 'function_call_output'; functionCallParams?: string; id?: string }
+    | { type: 'control'; action: 'speech_started' | 'connected' | 'text_done' | 'function_call_output' | 'item_created'; functionCallParams?: string; id?: string }
     | { type: 'control'; action: 'session_created'; id?: string }
     | { type: 'control'; action: 'error'; error: OpenAIError; id?: string }
     | { type: 'control'; action: 'rate_limits_updated'; rateLimits: RateLimits; id?: string };
@@ -22,7 +22,7 @@ export type SystemMessageTool = {
 }
 
 export type SystemMessage = {
-    type: 'language-coach' | 'medical-form' | 'medical-question-answer';
+    type: 'language-coach' | 'software-architecture-coach' | 'agile-scrum-coach';
     initialInstructions: string;
     message: string;
     tools?: SystemMessageTool[];
@@ -53,4 +53,3 @@ export type RateLimits = {
     remaining: number;
     reset_seconds: number;
 }
-  

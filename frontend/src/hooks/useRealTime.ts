@@ -201,7 +201,8 @@ export function useRealTime() {
 
     try {
       await initAudio();
-      const socketUrl = (window as any).REALTIME_BFF_URL || 'ws://localhost:8080/realtime';
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const socketUrl = `${protocol}//${window.location.host}/realtime`;
       const socket = new WebSocket(socketUrl);
       socket.binaryType = 'arraybuffer';
       socketRef.current = socket; // Set immediately to allow disconnect() to close it

@@ -1,12 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 // Coach App Main Component
 import { useRealTime } from './hooks/useRealTime'
-import type { SystemMessageType } from './types'
+import type { SystemMessageType, User } from './types'
 import './App.css'
+
+declare global {
+  interface Window {
+    google: any;
+    GOOGLE_CLIENT_ID: string;
+  }
+}
 
 interface PageProps {
   label: string;
   onBack: () => void;
+  user: User;
 }
 
 function Page({ label, onBack }: PageProps) {
@@ -154,15 +162,146 @@ function Page({ label, onBack }: PageProps) {
   )
 }
 
+function Login({ onLogin }: { onLogin: (user: User) => void }) {
+  const googleButtonRef = useRef<HTMLDivElement>(null);
+  const [googleLoaded, setGoogleLoaded] = useState(false);
+
+  useEffect(() => {
+    const checkGoogle = () => {
+      if (window.google) {
+        setGoogleLoaded(true);
+      } else {
+        setTimeout(checkGoogle, 100);
+      }
+    };
+    checkGoogle();
+  }, []);
+
+  useEffect(() => {
+    const handleCredentialResponse = async (response: any) => {
+      console.log('Google credential received, authenticating with backend...');
+      try {
+        const res = await fetch(`/auth/google`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: response.credential }),
+          credentials: 'include',
+        });
+
+        const data = await res.json();
+        console.log('Backend auth response:', data);
+
+        if (res.ok) {
+          console.log('Login successful, calling onLogin...');
+          onLogin(data.user);
+        } else {
+          console.error('Login failed:', data.error);
+          alert(data.error || 'Login failed');
+        }
+      } catch (err) {
+        console.error('Network error during login:', err);
+        alert('Connection error during login');
+      }
+    };
+
+    if (googleLoaded && googleButtonRef.current) {
+      if (!window.GOOGLE_CLIENT_ID) {
+        console.error('GOOGLE_CLIENT_ID is missing');
+        return;
+      }
+
+      window.google.accounts.id.initialize({
+        client_id: window.GOOGLE_CLIENT_ID,
+        callback: handleCredentialResponse,
+      });
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: 'outline',
+        size: 'large',
+      });
+    }
+  }, [onLogin, googleLoaded]);
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-xl flex flex-col items-center gap-6">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white text-center">
+          Welcome to Hands-Free AI Coach
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 text-center">
+          Please sign in with your Google account to continue.
+        </p>
+        {!window.GOOGLE_CLIENT_ID && (
+          <p className="text-red-500 text-sm font-medium">
+            Error: GOOGLE_CLIENT_ID is not configured. 
+            Please check your environment variables or .env file.
+          </p>
+        )}
+        <div ref={googleButtonRef} />
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [activePage, setActivePage] = useState<string | null>(null)
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  console.log('App State - User:', user, 'Loading:', loading, 'ActivePage:', activePage);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        console.log('Checking existing session...');
+        const res = await fetch(`/auth/me`, {
+          credentials: 'include',
+        });
+        const data = await res.json();
+        console.log('Session check response:', data);
+        if (data.authenticated) {
+          setUser(data.user);
+        }
+      } catch (err) {
+        console.error('Auth check failed', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    void checkAuth();
+  }, []);
+
+  const handleLogout = async () => {
+    await fetch(`/auth/logout`, { 
+      method: 'POST',
+      credentials: 'include',
+    });
+    setUser(null);
+    setActivePage(null);
+  };
+
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  if (!user) {
+    return <Login onLogin={setUser} />;
+  }
 
   if (activePage) {
-    return <Page label={activePage} onBack={() => setActivePage(null)} />
+    return <Page label={activePage} onBack={() => setActivePage(null)} user={user} />
   }
 
   return (
     <div className="flex-1 w-full flex flex-col items-center justify-center gap-6 bg-gray-50 dark:bg-gray-900">
+      <div className="absolute top-4 right-4 flex items-center gap-4">
+        <span className="text-gray-600 dark:text-gray-400">{user.email}</span>
+        <button
+          onClick={handleLogout}
+          className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-sm rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+        >
+          Logout
+        </button>
+      </div>
       <div className="flex gap-4">
         <button
           onClick={() => setActivePage('Articulation Coach')}

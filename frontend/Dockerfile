@@ -1,5 +1,5 @@
 # Build stage
-FROM --platform=linux/amd64 node:22-slim AS build
+FROM node:22-slim AS build
 
 WORKDIR /app
 
@@ -15,30 +15,29 @@ RUN if [ -f yarn.lock ]; then yarn install --frozen-lockfile; \
 # Copy source code
 COPY . .
 
-# Build the project
+# Build the project (generates /app/dist)
 RUN npm run build
 
 # Production stage
-FROM --platform=linux/amd64 nginx:alpine
+FROM node:22-slim AS production
 
-# Copy built files
-COPY --from=build /app/dist /usr/share/nginx/html
+WORKDIR /app
 
-# 1. Add SPA routing support for Nginx
-RUN echo 'server { \
-    listen 80; \
-    location / { \
-        root /usr/share/nginx/html; \
-        index index.html; \
-        try_files $uri $uri/ /index.html; \
-    } \
-}' > /etc/nginx/conf.d/default.conf
+# Copy built files and server code
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/server.ts ./server.ts
 
-# 2. Copy the entrypoint script
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Install tsx to run the server.ts
+RUN npm install -g tsx
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=80
 
 EXPOSE 80
 
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["nginx", "-g", "daemon off;"]
+# Command to run the Express server
+CMD ["tsx", "server.ts"]
+

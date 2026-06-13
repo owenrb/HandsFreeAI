@@ -98,6 +98,42 @@ If you have product feedback or errors while building visit:
 
 [![Azure AI Foundry Developer Forum](https://img.shields.io/badge/GitHub-Azure_AI_Foundry_Developer_Forum-blue?style=for-the-badge&logo=github&color=000000&logoColor=fff)](https://aka.ms/foundry/forum)
 
+## Docker Multi-platform Builds
+
+To build images for both `linux/amd64` and `linux/arm64/v8` (for Apple Silicon and standard servers), use `docker buildx`.
+
+### 1. Enable Buildx
+Ensure you are using a builder that supports multi-platform builds.
+
+```bash
+docker buildx create --use
+docker buildx inspect --bootstrap
+```
+
+> **Note:** If you get `docker: 'buildx' is not a docker command`, you likely installed Docker via Homebrew. Run the following to link the plugin:
+> ```bash
+> mkdir -p ~/.docker/cli-plugins
+> # For Apple Silicon:
+> ln -sfn /opt/homebrew/opt/docker-buildx/bin/docker-buildx ~/.docker/cli-plugins/docker-buildx
+> # For Intel:
+> ln -sfn /usr/local/opt/docker-buildx/bin/docker-buildx ~/.docker/cli-plugins/docker-buildx
+> ```
+
+### 2. Build and Push
+Multi-platform images must be pushed to a registry (like Docker Hub) to be stored as a Manifest List.
+
+**Server:**
+```bash
+cd server
+docker buildx build --platform linux/amd64,linux/arm64/v8 -t owenrbee/hands-free-api:latest  -t owenrbee/hands-free-api:1.1.0 --push .
+```
+
+**Frontend:**
+```bash
+cd frontend
+docker buildx build --platform linux/amd64,linux/arm64/v8 -t owenrbee/hands-free-ux:latest -t owenrbee/hands-free-ux:1.1.0 --push .
+```
+
 ## Deploying as ACA
 
 ### Step 1

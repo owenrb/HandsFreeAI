@@ -41,4 +41,4 @@ export type WebSocketMessage = {
 
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected';
 
-export type SystemMessageType = 'language-coach' | 'software-architecture-coach' | 'agile-scrum-coach';
+export type SystemMessageType = 'language-coach' | 'tech-chitchat-companion' | 'small-talk-companion';

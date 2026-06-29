@@ -24,8 +24,8 @@ function Page({ label, onBack }: PageProps) {
   
   const systemMessageType: SystemMessageType = 
     label === 'Articulation Coach' ? 'language-coach' :
-    label === 'Software Architect Coach' ? 'software-architecture-coach' :
-    'agile-scrum-coach';
+    label === 'Tech Chit-Chat' ? 'tech-chitchat-companion' :
+    'small-talk-companion';
 
   const {
     connectionState,
@@ -312,10 +312,10 @@ function App() {
       </div>
       <div className="flex gap-4">
         <button
-          onClick={() => setActivePage('Software Architect Coach')}
+          onClick={() => setActivePage('Tech Chit-Chat')}
           className="px-6 py-3 bg-purple-500 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-75 transition duration-300 transform hover:scale-105"
         >
-          Software Architect Coach
+          Tech Chit-Chat
         </button>
       </div>
       <div className="flex gap-4">
@@ -323,7 +323,7 @@ function App() {
           onClick={() => setActivePage('Agile/Scrum Coach')}
           className="px-6 py-3 bg-indigo-500 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-opacity-75 transition duration-300 transform hover:scale-105"
         >
-          Agile/Scrum Coach
+          Small Talk Companion
         </button>
       </div>
     </div>

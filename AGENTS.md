@@ -70,9 +70,11 @@ Then remove `OPENAI_API_KEY` from your `.env` file.
 
 ### Development Features
 - **WebSocket endpoint**: `ws://localhost:8080/realtime`
-- **Client URL**: `http://localhost:4200`
+- **Client URL**: `http://localhost:3000` (or `http://localhost:3000/?mock=true` for simulated test mode)
 - **Hot-reload**: Both client and server support live code changes
 - **Debugging**: Use browser DevTools for client, Node.js inspector for server
+- **PDF Export**: Export dialogue history as a beautifully formatted PDF from the session toolbar (renders in a new tab and triggers print dialog on demand)
+- **Simulated Test Mode (Mock Mode)**: Append `?mock=true` to the URL. This bypasses Google authentication and starts a mock WebSocket session with a simulated conversation flow, allowing UI and PDF export verification without valid OpenAI/Azure credentials.
 
 ### Environment Configuration
 - **Development**: Uses `.env` file for API keys and endpoints
@@ -226,6 +228,7 @@ cd ../client && npx ng build --configuration development
 - Audio quality depends on microphone settings and background noise
 - Test with different languages for language coach feature
 - Medical form supports structured data extraction from voice input
+- **Mock Mode Testing**: Use `?mock=true` in the URL to test UI flow, state transitions, and PDF exports offline or without configured API credentials.
 
 ### Project Structure Notes
 - This is a demonstration/sample project for learning real-time AI applications

@@ -1,6 +1,6 @@
 {
   "name": "realtimeaiapp-js",
-  "version": "1.0.0",
+  "version": "1.3.0",
   "description": "Realtime OpenAI demo showing real-time text and speech. Learn a language or complete a form using your voice.",
   "keywords": [
     "realtime",
@@ -22,7 +22,7 @@
   "type": "module",
   "scripts": {
     "deploy": "gh-pages -d public",
-    "repo-adventures": "repo-adventures --theme all --output ./public --overwrite" 
+    "repo-adventures": "repo-adventures --theme all --output ./public --overwrite"
   },
   "devDependencies": {
     "gh-pages": "^6.3.0",

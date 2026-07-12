@@ -17,7 +17,7 @@ interface PageProps {
   user: User;
 }
 
-function Page({ label, onBack }: PageProps) {
+function Page({ label, onBack, user }: PageProps) {
   const [availableMicrophones, setAvailableMicrophones] = useState<MediaDeviceInfo[]>([]);
   const [selectedMicrophoneId, setSelectedMicrophoneId] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -43,6 +43,224 @@ function Page({ label, onBack }: PageProps) {
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
+
+  const handleExportPDF = () => {
+    if (messages.length === 0) return;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to export the conversation.');
+      return;
+    }
+
+    const title = `${label} Session Transcript`;
+    const dateStr = new Date().toLocaleString();
+    const userEmail = user?.email || 'N/A';
+
+    const messagesHTML = messages.map(msg => {
+      const isUser = msg.type === 'user';
+      const senderName = isUser ? 'You' : `${label}`;
+      const senderClass = isUser ? 'sender-user' : 'sender-ai';
+      const contentEscaped = msg.content
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\n/g, '<br/>');
+
+      return `
+        <div class="message-card ${senderClass}">
+          <div class="message-header">
+            <span class="sender-badge">${senderName}</span>
+          </div>
+          <div class="message-content">${contentEscaped}</div>
+        </div>
+      `;
+    }).join('');
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${title}</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <style>
+          * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+          }
+          body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #1f2937;
+            background-color: #f9fafb;
+            line-height: 1.5;
+            padding: 40px;
+          }
+          .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px 24px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+          }
+          .toolbar-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #4b5563;
+          }
+          .toolbar-actions {
+            display: flex;
+            gap: 12px;
+          }
+          .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+          }
+          .btn-primary {
+            background-color: #3b82f6;
+            color: #ffffff;
+            border: none;
+          }
+          .btn-primary:hover {
+            background-color: #2563eb;
+          }
+          .btn-secondary {
+            background-color: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+          }
+          .btn-secondary:hover {
+            background-color: #e5e7eb;
+          }
+          .container {
+            max-width: 800px;
+            margin: 0 auto;
+          }
+          .header {
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+          }
+          .header-main h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 8px;
+          }
+          .header-meta {
+            font-size: 13px;
+            color: #6b7280;
+            text-align: right;
+          }
+          .header-meta div {
+            margin-bottom: 4px;
+          }
+          .transcript {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+          }
+          .message-card {
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            page-break-inside: avoid;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+          }
+          .sender-user {
+            border-left: 4px solid #3b82f6;
+          }
+          .sender-ai {
+            border-left: 4px solid #8b5cf6;
+          }
+          .message-header {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+          }
+          .sender-badge {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+          }
+          .sender-user .sender-badge {
+            color: #2563eb;
+          }
+          .sender-ai .sender-badge {
+            color: #7c3aed;
+          }
+          .message-content {
+            font-size: 15px;
+            color: #374151;
+            white-space: pre-wrap;
+          }
+          
+          @media print {
+            .no-print {
+              display: none !important;
+            }
+            body {
+              padding: 0;
+              background-color: transparent;
+            }
+            .message-card {
+              box-shadow: none;
+              border: 1px solid #e5e7eb;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="toolbar no-print">
+            <span class="toolbar-title">Export Preview - Session: ${label}</span>
+            <div class="toolbar-actions">
+              <button class="btn btn-primary" onclick="window.print()">Print / Save as PDF</button>
+              <button class="btn btn-secondary" onclick="window.close()">Close</button>
+            </div>
+          </div>
+          
+          <div class="header">
+            <div class="header-main">
+              <h1>${label}</h1>
+              <p style="color: #6b7280; font-size: 14px;">Conversation Transcript</p>
+            </div>
+            <div class="header-meta">
+              <div><strong>User:</strong> ${userEmail}</div>
+              <div><strong>Date:</strong> ${dateStr}</div>
+              <div><strong>Messages:</strong> ${messages.length}</div>
+            </div>
+          </div>
+          
+          <div class="transcript">
+            ${messagesHTML}
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   const getMicrophones = useCallback(async () => {
     try {
@@ -115,19 +333,37 @@ function Page({ label, onBack }: PageProps) {
             )}
           </div>
 
-          {availableMicrophones.length > 1 && (
-            <select
-              value={selectedMicrophoneId}
-              onChange={(e) => setSelectedMicrophoneId(e.target.value)}
-              className="px-3 py-2 rounded-lg border dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm"
+          <div className="flex items-center gap-3">
+            {availableMicrophones.length > 1 && (
+              <select
+                value={selectedMicrophoneId}
+                onChange={(e) => setSelectedMicrophoneId(e.target.value)}
+                className="px-3 py-2 rounded-lg border dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm"
+              >
+                {availableMicrophones.map(mic => (
+                  <option key={mic.deviceId} value={mic.deviceId}>
+                    {mic.label || `Microphone ${mic.deviceId.slice(0, 5)}`}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <button
+              onClick={handleExportPDF}
+              disabled={messages.length === 0}
+              title={messages.length === 0 ? "No messages to export" : "Export conversation as PDF"}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition ${
+                messages.length === 0
+                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed border border-gray-200 dark:border-gray-700'
+                  : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600 shadow-md hover:shadow-lg active:scale-95'
+              }`}
             >
-              {availableMicrophones.map(mic => (
-                <option key={mic.deviceId} value={mic.deviceId}>
-                  {mic.label || `Microphone ${mic.deviceId.slice(0, 5)}`}
-                </option>
-              ))}
-            </select>
-          )}
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-9.707a1 1 0 011.414 0L9 8.586V3a1 1 0 112 0v5.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+              Export PDF
+            </button>
+          </div>
         </div>
 
         {/* Messages Display */}
@@ -253,7 +489,7 @@ function App() {
     const checkAuth = async () => {
       try {
         console.log('Checking existing session...');
-        const res = await fetch(`/auth/me`, {
+        const res = await fetch(`/auth/me${window.location.search}`, {
           credentials: 'include',
         });
         const data = await res.json();

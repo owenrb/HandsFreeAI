@@ -200,25 +200,145 @@ export function useRealTime() {
     setConnectionState('connecting');
 
     try {
-      await initAudio();
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const socketUrl = `${protocol}//${window.location.host}/realtime`;
-      const socket = new WebSocket(socketUrl);
-      socket.binaryType = 'arraybuffer';
-      socketRef.current = socket; // Set immediately to allow disconnect() to close it
-      
+      const isMock = window.location.search.includes('mock=true');
+      let socket: any;
+
+      if (isMock) {
+        console.log('[MockWS] Initializing mock WebSocket connection...');
+        const mockSocket = {
+          readyState: 1, // OPEN
+          send: (data: any) => {
+            console.log('[MockWS] sent data:', data);
+          },
+          close: () => {
+            console.log('[MockWS] closed');
+            if (mockSocket.onclose) {
+              mockSocket.onclose({} as any);
+            }
+          },
+          onopen: null as any,
+          onmessage: null as any,
+          onclose: null as any,
+          onerror: null as any,
+        };
+        socket = mockSocket;
+        socketRef.current = socket;
+
+        // Trigger connection lifecycle after handlers are assigned
+        setTimeout(() => {
+          if (socketRef.current !== socket) return;
+          if (socket.onopen) socket.onopen();
+          
+          // Send session_created control message
+          if (socket.onmessage) {
+            socket.onmessage({
+              data: JSON.stringify({
+                type: 'control',
+                action: 'session_created',
+              })
+            } as any);
+          }
+
+          // Simulate a conversation thread
+          const conversationSteps = [
+            {
+              delay: 1500,
+              userText: "Hello, coach! I'd like to practice my presentation skills today.",
+              aiText: "Hello! That sounds like a wonderful goal. Let's start with a quick warm-up. What is the topic of your presentation?"
+            },
+            {
+              delay: 8000,
+              userText: "It's about our new hands-free AI features. I want to sound natural and confident.",
+              aiText: "Excellent topic. Hands-free AI is very relevant. When introducing the core concept, try to keep your voice steady. Let's practice your opening hook."
+            },
+            {
+              delay: 15000,
+              userText: "Sounds good. My opening hook is: 'Have you ever wished you could interact with AI using just your voice?'",
+              aiText: "That's a very engaging question! Your pacing was good. Try to emphasize 'just your voice' slightly more to make it pop."
+            }
+          ];
+
+          conversationSteps.forEach(stepData => {
+            setTimeout(() => {
+              if (socketRef.current !== socket) return;
+              
+              // 1. Simulate Speech Started (creates the user bubble with '...')
+              if (socket.onmessage) {
+                socket.onmessage({
+                  data: JSON.stringify({
+                    type: 'control',
+                    action: 'speech_started',
+                  })
+                } as any);
+              }
+
+              // 2. Simulate User Transcription (updates user bubble text)
+              setTimeout(() => {
+                if (socketRef.current !== socket) return;
+                if (socket.onmessage) {
+                  socket.onmessage({
+                    data: JSON.stringify({
+                      type: 'transcription',
+                      id: currentUserMessageIdRef.current || undefined,
+                      text: stepData.userText,
+                    })
+                  } as any);
+                }
+              }, 1000);
+
+              // 3. Simulate AI Delta Responses
+              setTimeout(() => {
+                if (socketRef.current !== socket) return;
+                const aiMsgId = uuidv4();
+                
+                // Send parts of response in sequence
+                const words = stepData.aiText.split(' ');
+                let currentText = '';
+                words.forEach((word, idx) => {
+                  setTimeout(() => {
+                    if (socketRef.current !== socket) return;
+                    currentText += (idx === 0 ? '' : ' ') + word;
+                    if (socket.onmessage) {
+                      socket.onmessage({
+                        data: JSON.stringify({
+                          type: 'text_delta',
+                          id: aiMsgId,
+                          delta: (idx === 0 ? '' : ' ') + word,
+                        })
+                      } as any);
+                    }
+                  }, idx * 100);
+                });
+              }, 2500);
+
+            }, stepData.delay);
+          });
+
+        }, 100);
+
+      } else {
+        await initAudio();
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const socketUrl = `${protocol}//${window.location.host}/realtime`;
+        socket = new WebSocket(socketUrl);
+        socket.binaryType = 'arraybuffer';
+        socketRef.current = socket; // Set immediately to allow disconnect() to close it
+      }
+
       socket.onopen = () => {
         if (socketRef.current !== socket) {
           socket.close();
           return;
         }
-        socket.send(JSON.stringify({ type: 'init', systemMessageType }));
+        if (!isMock) {
+          socket.send(JSON.stringify({ type: 'init', systemMessageType }));
+        }
       };
       
-      socket.onmessage = async (event) => {
+      socket.onmessage = async (event: MessageEvent) => {
         if (socketRef.current !== socket) return;
         
-        if (event.data instanceof ArrayBuffer) {
+        if (!isMock && event.data instanceof ArrayBuffer) {
           playAudio(new Int16Array(event.data));
         } else {
           handleWSMessage(JSON.parse(event.data));
@@ -231,7 +351,7 @@ export function useRealTime() {
         }
       };
       
-      socket.onerror = (e) => {
+      socket.onerror = (e: Event | any) => {
         if (socketRef.current === socket) {
           logError('WebSocket error:', e);
           setConnectionState('disconnected');

@@ -94,6 +94,12 @@ app.post('/auth/google', async (req: Request, res: Response) => {
 });
 
 app.get('/auth/me', (req: Request, res: Response) => {
+  if (req.query.mock === 'true') {
+    if (req.session) {
+      req.session.email = 'test@example.com';
+      req.session.userId = 'mock-user-123';
+    }
+  }
   if (req.session && req.session.email) {
     res.json({ authenticated: true, user: { email: req.session.email } });
   } else {

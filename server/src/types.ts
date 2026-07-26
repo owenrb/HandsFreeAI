@@ -67,3 +67,44 @@ export type DbUser = {
     updatedAt: Date;
 }
 
+export type BloodPressureReading = {
+    systolic: number;
+    diastolic: number;
+    timestamp: Date;
+}
+
+export type HealthMetrics = {
+    weight?: number;
+    steps?: number;
+    bloodPressure?: BloodPressureReading[];
+}
+
+export type FoodItem = {
+    foodItem: string;
+    unit: string;
+    calories: number;
+}
+
+export type Meals = {
+    breakfast?: FoodItem[];
+    lunch?: FoodItem[];
+    snack?: FoodItem[];
+    dinner?: FoodItem[];
+}
+
+export type DailySummary = {
+    totalCalories?: number;
+}
+
+export type DailyLog = {
+    _id?: any;
+    userId: any;
+    date: Date;
+    metrics?: HealthMetrics;
+    meals?: Meals;
+    summary?: DailySummary;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+

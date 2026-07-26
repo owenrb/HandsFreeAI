@@ -1,6 +1,6 @@
 import { MongoClient, MongoClientOptions } from 'mongodb';
 import type { Logger } from 'pino';
-import { DbUser } from './types.js';
+import { DbUser, DailyLog } from './types.js';
 
 let client: MongoClient | null = null;
 
@@ -40,6 +40,7 @@ export async function initMongoDB(logger: Logger): Promise<MongoClient | null> {
     await client.connect();
     logger.info('🟢 Connected successfully to MongoDB cluster');
     await initUserCollection(logger);
+    await initDailyLogCollection(logger);
     return client;
   } catch (error) {
     logger.error({ error }, '🔥 Failed to connect to MongoDB');
@@ -47,7 +48,7 @@ export async function initMongoDB(logger: Logger): Promise<MongoClient | null> {
   }
 }
 
-export async function initUserCollection(logger?: Logger): Promise<void> {
+export async function initUserCollection(logger?: Logger, forceSeed: boolean = false): Promise<void> {
   if (!client) return;
 
   try {
@@ -58,24 +59,51 @@ export async function initUserCollection(logger?: Logger): Promise<void> {
     await usersCollection.createIndex({ email: 1 }, { unique: true });
     logger?.info('✅ Created unique index on email for "users" collection');
 
+    const isSeedEnabled = process.env.SEED_USER_ENABLE === 'true' || forceSeed;
+    if (!isSeedEnabled) {
+      logger?.info('ℹ️ SEED_USER_ENABLE is false or not set. Skipping user document seeding.');
+      return;
+    }
+
+    const seedEmail = process.env.SEED_USER_EMAIL || 'owenrb@gmail.com';
+    const seedNickname = process.env.SEED_USER_NICKNAME || 'Owen';
+    const seedGender = (process.env.SEED_USER_GENDER as any) || 'Male';
+    const seedBirthdayStr = process.env.SEED_USER_BIRTHDAY || '1976-10-30T00:00:00Z';
+    const seedHeight = process.env.SEED_USER_HEIGHT || '165 cm';
+
     const initialUser = {
-      email: 'owenrb@gmail.com',
-      nickname: 'Owen',
-      gender: 'Male',
-      birthday: new Date('1976-10-30T00:00:00Z'),
-      height: '165 cm',
+      email: seedEmail,
+      nickname: seedNickname,
+      gender: seedGender,
+      birthday: new Date(seedBirthdayStr),
+      height: seedHeight,
       createdAt: new Date('2026-07-26T10:00:00Z'),
-      updatedAt: new Date('2026-07-26T10:00:00Z'),
+      updatedAt: new Date(),
     };
 
     await usersCollection.updateOne(
       { email: initialUser.email },
-      { $set: { height: initialUser.height }, $setOnInsert: initialUser },
+      { $set: { nickname: initialUser.nickname, gender: initialUser.gender, birthday: initialUser.birthday, height: initialUser.height, updatedAt: initialUser.updatedAt }, $setOnInsert: { createdAt: initialUser.createdAt } },
       { upsert: true }
     );
     logger?.info({ email: initialUser.email }, '✅ Seeded/Updated initial user document in "users" collection');
   } catch (error) {
     logger?.error({ error }, '🔥 Failed to initialize/seed "users" collection');
+  }
+}
+
+export async function initDailyLogCollection(logger?: Logger): Promise<void> {
+  if (!client) return;
+
+  try {
+    const db = client.db();
+    const dailyLogCollection = db.collection('daily_log');
+
+    // Create unique compound index on { userId: 1, date: 1 }
+    await dailyLogCollection.createIndex({ userId: 1, date: 1 }, { unique: true });
+    logger?.info('✅ Created unique compound index on { userId, date } for "daily_log" collection');
+  } catch (error) {
+    logger?.error({ error }, '🔥 Failed to initialize "daily_log" collection');
   }
 }
 
@@ -90,6 +118,24 @@ export async function getUserByEmail(email: string): Promise<DbUser | null> {
     const db = client.db();
     const user = await db.collection<DbUser>('users').findOne({ email: email.toLowerCase() });
     return user;
+  } catch (error) {
+    return null;
+  }
+}
+
+export async function getDailyLogForUser(userId: any, date?: Date): Promise<DailyLog | null> {
+  if (!client) return null;
+
+  try {
+    const db = client.db();
+    const targetDate = date ? new Date(date) : new Date();
+    targetDate.setUTCHours(0, 0, 0, 0);
+
+    const log = await db.collection<DailyLog>('daily_log').findOne({
+      userId,
+      date: targetDate,
+    });
+    return log;
   } catch (error) {
     return null;
   }

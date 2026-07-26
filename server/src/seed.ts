@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import path from 'path';
 import { pino } from 'pino';
-import { initMongoDB, closeMongoDB } from './db.js';
+import { initMongoDB, closeMongoDB, initUserCollection } from './db.js';
 
 dotenv.config();
 dotenv.config({ path: path.join(process.cwd(), '..', '.env') });
@@ -20,6 +20,7 @@ async function runSeed() {
     process.exit(1);
   }
 
+  await initUserCollection(logger, true);
   logger.info('🎉 Seed completed successfully!');
   await closeMongoDB();
   process.exit(0);

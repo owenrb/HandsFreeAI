@@ -5,7 +5,7 @@
   "description": "Realtime OpenAI demo showing real-time text and speech. Learn a language or complete a form using your voice. + Security",
   "type": "module",
   "scripts": {
-    "dev": "tsx server.ts",
+    "dev": "tsx watch server.ts",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",

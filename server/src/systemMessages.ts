@@ -1,4 +1,4 @@
-import { SystemMessage } from "./types.js";
+import { SystemMessage, DbUser } from "./types.js";
 
 const systemMessages: SystemMessage[] = [
     {
@@ -105,9 +105,46 @@ const systemMessages: SystemMessage[] = [
     }
 ]
 
-export function getSystemMessage(type: string): SystemMessage | null {
-    const systemMessage = systemMessages.find((systemMessage) => systemMessage.type === type);
-    return systemMessage || null;
+export function getSystemMessage(type: string, user?: DbUser | null): SystemMessage | null {
+    const baseMessage = systemMessages.find((systemMessage) => systemMessage.type === type);
+    if (!baseMessage) return null;
+
+    // Return a clone to avoid mutating the template
+    const systemMessage: SystemMessage = JSON.parse(JSON.stringify(baseMessage));
+
+    if (type === 'health-assistant') {
+        const todayDate = new Date().toISOString().split('T')[0];
+        const todayFormatted = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        
+        let contextBlock = `
+
+DATE & TIME CONTEXT:
+- Today's Date: ${todayFormatted} (${todayDate})`;
+
+        if (user) {
+            const birthdayStr = user.birthday ? new Date(user.birthday).toISOString().split('T')[0] : 'N/A';
+            contextBlock += `
+
+USER PROFILE CONTEXT:
+- Nickname: ${user.nickname}
+- Gender: ${user.gender || 'N/A'}
+- Birthday: ${birthdayStr}
+- Height: ${user.height || 'N/A'}
+- Email: ${user.email}
+
+PERSONALIZATION INSTRUCTIONS:
+- Address the user by their nickname "${user.nickname}" in your initial greeting and naturally throughout your conversation.
+- Use the user's age/birthday, gender, and height context to provide age-appropriate, gender-appropriate, and height/physical metric tailored health, nutrition, and exercise recommendations when relevant.`;
+
+            if (user.nickname) {
+                systemMessage.initialInstructions = `Greet ${user.nickname} warmly as their Health Mate, addressing them directly by their nickname "${user.nickname}", and ask how you can help with their health, wellness, exercise, or nutrition goals today. Keep it supportive, friendly, and brief.`;
+            }
+        }
+
+        systemMessage.message += contextBlock;
+    }
+
+    return systemMessage;
 }
 
 

@@ -22,7 +22,7 @@ fetch(`${backendUrl}/auth/me`)
 
 // Proxy authentication requests
 app.use(createProxyMiddleware({
-  pathFilter: (path) => path.startsWith('/auth'),
+  pathFilter: (path) => path.startsWith('/auth') || path.startsWith('/health'),
   target: backendUrl,
   changeOrigin: true,
   on: {

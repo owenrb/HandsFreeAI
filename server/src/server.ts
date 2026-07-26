@@ -9,6 +9,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { RTSession } from './session.js';
 import { getSystemMessage } from './systemMessages.js';
+import { initMongoDB, closeMongoDB, getMongoClient, getUserByEmail } from './db.js';
 
 // Load .env from current directory or project root
 dotenv.config();
@@ -112,6 +113,22 @@ app.post('/auth/logout', (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
+app.get('/health', (req: Request, res: Response) => {
+  const mongoClient = getMongoClient();
+  const mongoStatus = !process.env.MONGODB_URL
+    ? 'not_configured'
+    : mongoClient
+    ? 'connected'
+    : 'disconnected';
+
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    mongodb: mongoStatus,
+  });
+});
+
 server.on('upgrade', (request, socket, head) => {
   const { pathname } = new URL(request.url!, `http://${request.headers.host}`);
   if (pathname === '/realtime') {
@@ -143,11 +160,11 @@ server.on('upgrade', (request, socket, head) => {
   }
 });
 
-wss.on('connection', (ws: WebSocket) => {
+wss.on('connection', (ws: WebSocket, request: http.IncomingMessage) => {
   logger.info('🟢 New Client websocket connection opened');
   let rtSession: RTSession | null = null;
 
-  const handleSocketEvent = (eventType: string, data?: any) => {
+  const handleSocketEvent = async (eventType: string, data?: any) => {
     switch (eventType) {
       case 'message':
         if (!data) {
@@ -166,7 +183,17 @@ wss.on('connection', (ws: WebSocket) => {
             }
 
             logger.info('🔄 Initializing RTSession');
-            const systemMessage = getSystemMessage(initSystemMessage.systemMessageType);
+
+            const email = (request as any)?.session?.email;
+            let userProfile = null;
+            if (email) {
+              userProfile = await getUserByEmail(email);
+              if (userProfile) {
+                logger.info({ email, nickname: userProfile.nickname }, '👤 Loaded user profile from MongoDB');
+              }
+            }
+
+            const systemMessage = getSystemMessage(initSystemMessage.systemMessageType, userProfile);
             logger.info( { systemMessage }, '✅ System message retrieved');
             
             rtSession = new RTSession(ws, logger, systemMessage);
@@ -204,8 +231,12 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   res.status(500).json({ error: '🔥 Internal server error' });
 });
 
-server.listen(PORT, () => logger.info(`🟢 WebSocket server started on http://localhost:${PORT}`));
+server.listen(PORT, async () => {
+  logger.info(`🟢 WebSocket server started on http://localhost:${PORT}`);
+  await initMongoDB(logger);
+});
 
-server.on('close', () => {
+server.on('close', async () => {
   logger.info('🔴 WebSocket server stopped');
+  await closeMongoDB();
 });

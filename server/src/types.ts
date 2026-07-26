@@ -53,3 +53,17 @@ export type RateLimits = {
     remaining: number;
     reset_seconds: number;
 }
+
+export type UserGender = 'Male' | 'Female' | 'Non-binary' | 'Other';
+
+export type DbUser = {
+    _id?: any;
+    email: string;
+    nickname: string;
+    gender: UserGender;
+    birthday: Date;
+    height?: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
+

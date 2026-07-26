@@ -25,6 +25,7 @@ function Page({ label, onBack, user }: PageProps) {
   const systemMessageType: SystemMessageType = 
     label === 'Articulation Coach' ? 'language-coach' :
     label === 'Tech Chit-Chat' ? 'tech-chitchat-companion' :
+    label === 'Health Mate' ? 'health-assistant' :
     'small-talk-companion';
 
   const {
@@ -560,6 +561,14 @@ function App() {
           className="px-6 py-3 bg-indigo-500 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-opacity-75 transition duration-300 transform hover:scale-105"
         >
           Small Talk Companion
+        </button>
+      </div>
+      <div className="flex gap-4">
+        <button
+          onClick={() => setActivePage('Health Mate')}
+          className="px-6 py-3 bg-emerald-500 text-white font-semibold rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-opacity-75 transition duration-300 transform hover:scale-105"
+        >
+          Health Mate
         </button>
       </div>
     </div>

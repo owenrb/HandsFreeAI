@@ -22,7 +22,7 @@ export type SystemMessageTool = {
 }
 
 export type SystemMessage = {
-    type: 'language-coach' | 'tech-chitchat-companion' | 'small-talk-companion';
+    type: 'language-coach' | 'tech-chitchat-companion' | 'small-talk-companion' | 'health-assistant';
     initialInstructions: string;
     message: string;
     tools?: SystemMessageTool[];

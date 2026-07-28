@@ -196,7 +196,7 @@ wss.on('connection', (ws: WebSocket, request: http.IncomingMessage) => {
             const systemMessage = getSystemMessage(initSystemMessage.systemMessageType, userProfile);
             logger.info( { systemMessage }, '✅ System message retrieved');
             
-            rtSession = new RTSession(ws, logger, systemMessage);
+            rtSession = new RTSession(ws, logger, systemMessage, userProfile);
             // Remove message handler once session is created
             ws.off('message', messageHandler);
           }

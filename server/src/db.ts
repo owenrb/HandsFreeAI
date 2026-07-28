@@ -1,6 +1,6 @@
 import { MongoClient, MongoClientOptions } from 'mongodb';
 import type { Logger } from 'pino';
-import { DbUser, DailyLog } from './types.js';
+import { DbUser, DailyLog, BloodPressureReading, FoodItem, Meals } from './types.js';
 
 let client: MongoClient | null = null;
 
@@ -147,3 +147,255 @@ export async function closeMongoDB(): Promise<void> {
     client = null;
   }
 }
+
+export function normalizeDate(dateStr?: string): Date {
+  const d = dateStr ? new Date(dateStr) : new Date();
+  if (isNaN(d.getTime())) {
+    const fallback = new Date();
+    fallback.setUTCHours(0, 0, 0, 0);
+    return fallback;
+  }
+  d.setUTCHours(0, 0, 0, 0);
+  return d;
+}
+
+function formatDateISO(date: Date): string {
+  return date.toISOString().split('T')[0];
+}
+
+export async function getWeight(userId: any, params: { date?: string; startDate?: string; endDate?: string }) {
+  if (!client) return { error: 'Database not connected' };
+  try {
+    const db = client.db();
+    const collection = db.collection<DailyLog>('daily_log');
+
+    if (params.startDate || params.endDate) {
+      const start = normalizeDate(params.startDate);
+      const end = params.endDate ? normalizeDate(params.endDate) : normalizeDate();
+      end.setUTCHours(23, 59, 59, 999);
+
+      const logs = await collection.find({ userId, date: { $gte: start, $lte: end } }).sort({ date: 1 }).toArray();
+      const records = logs.map(doc => ({
+        date: formatDateISO(doc.date),
+        weight: doc.metrics?.weight ?? null,
+      }));
+      return { records };
+    } else {
+      const targetDate = normalizeDate(params.date);
+      const log = await collection.findOne({ userId, date: targetDate });
+      return { date: formatDateISO(targetDate), weight: log?.metrics?.weight ?? null };
+    }
+  } catch (error) {
+    return { error: 'Failed to retrieve weight log' };
+  }
+}
+
+export async function setWeight(userId: any, params: { weight: number; unit?: string; date?: string }) {
+  if (!client) return { error: 'Database not connected' };
+  try {
+    const db = client.db();
+    const collection = db.collection<DailyLog>('daily_log');
+    const targetDate = normalizeDate(params.date);
+
+    await collection.updateOne(
+      { userId, date: targetDate },
+      {
+        $set: { 'metrics.weight': params.weight, updatedAt: new Date() },
+        $setOnInsert: { createdAt: new Date() }
+      },
+      { upsert: true }
+    );
+    return { success: true, date: formatDateISO(targetDate), weight: params.weight, unit: params.unit || 'kg' };
+  } catch (error) {
+    return { error: 'Failed to log weight' };
+  }
+}
+
+export async function getBloodPressure(userId: any, params: { date?: string; startDate?: string; endDate?: string }) {
+  if (!client) return { error: 'Database not connected' };
+  try {
+    const db = client.db();
+    const collection = db.collection<DailyLog>('daily_log');
+
+    if (params.startDate || params.endDate) {
+      const start = normalizeDate(params.startDate);
+      const end = params.endDate ? normalizeDate(params.endDate) : normalizeDate();
+      end.setUTCHours(23, 59, 59, 999);
+
+      const logs = await collection.find({ userId, date: { $gte: start, $lte: end } }).sort({ date: 1 }).toArray();
+      const records = logs.map(doc => ({
+        date: formatDateISO(doc.date),
+        bloodPressure: doc.metrics?.bloodPressure ?? [],
+      }));
+      return { records };
+    } else {
+      const targetDate = normalizeDate(params.date);
+      const log = await collection.findOne({ userId, date: targetDate });
+      return { date: formatDateISO(targetDate), bloodPressure: log?.metrics?.bloodPressure ?? [] };
+    }
+  } catch (error) {
+    return { error: 'Failed to retrieve blood pressure log' };
+  }
+}
+
+export async function setBloodPressure(userId: any, params: { systolic: number; diastolic: number; date?: string }) {
+  if (!client) return { error: 'Database not connected' };
+  try {
+    const db = client.db();
+    const collection = db.collection<DailyLog>('daily_log');
+    const targetDate = normalizeDate(params.date);
+
+    const newReading: BloodPressureReading = {
+      systolic: params.systolic,
+      diastolic: params.diastolic,
+      timestamp: new Date(),
+    };
+
+    await collection.updateOne(
+      { userId, date: targetDate },
+      {
+        $push: { 'metrics.bloodPressure': newReading },
+        $set: { updatedAt: new Date() },
+        $setOnInsert: { createdAt: new Date() }
+      },
+      { upsert: true }
+    );
+    return { success: true, date: formatDateISO(targetDate), reading: newReading };
+  } catch (error) {
+    return { error: 'Failed to log blood pressure' };
+  }
+}
+
+export async function getMeals(userId: any, params: { date?: string; startDate?: string; endDate?: string }) {
+  if (!client) return { error: 'Database not connected' };
+  try {
+    const db = client.db();
+    const collection = db.collection<DailyLog>('daily_log');
+
+    if (params.startDate || params.endDate) {
+      const start = normalizeDate(params.startDate);
+      const end = params.endDate ? normalizeDate(params.endDate) : normalizeDate();
+      end.setUTCHours(23, 59, 59, 999);
+
+      const logs = await collection.find({ userId, date: { $gte: start, $lte: end } }).sort({ date: 1 }).toArray();
+      const records = logs.map(doc => ({
+        date: formatDateISO(doc.date),
+        meals: doc.meals ?? {},
+        summary: doc.summary ?? {},
+      }));
+      return { records };
+    } else {
+      const targetDate = normalizeDate(params.date);
+      const log = await collection.findOne({ userId, date: targetDate });
+      return { date: formatDateISO(targetDate), meals: log?.meals ?? {}, summary: log?.summary ?? {} };
+    }
+  } catch (error) {
+    return { error: 'Failed to retrieve meals log' };
+  }
+}
+
+export async function setMeal(userId: any, params: { mealType: 'breakfast' | 'lunch' | 'snack' | 'dinner'; foodItem: string; calories: number; unit?: string; date?: string }) {
+  if (!client) return { error: 'Database not connected' };
+  try {
+    const db = client.db();
+    const collection = db.collection<DailyLog>('daily_log');
+    const targetDate = normalizeDate(params.date);
+
+    const newFoodItem: FoodItem = {
+      foodItem: params.foodItem,
+      calories: params.calories,
+      unit: params.unit || '1 serving',
+    };
+
+    const existingLog = await collection.findOne({ userId, date: targetDate });
+    const currentMeals: Meals = existingLog?.meals || {};
+    const categoryItems = currentMeals[params.mealType] || [];
+    const updatedCategoryItems = [...categoryItems, newFoodItem];
+
+    const updatedMeals: Meals = {
+      ...currentMeals,
+      [params.mealType]: updatedCategoryItems,
+    };
+
+    let totalCalories = 0;
+    const mealCategories: (keyof Meals)[] = ['breakfast', 'lunch', 'snack', 'dinner'];
+    for (const cat of mealCategories) {
+      const items = updatedMeals[cat] || [];
+      for (const item of items) {
+        totalCalories += item.calories || 0;
+      }
+    }
+
+    await collection.updateOne(
+      { userId, date: targetDate },
+      {
+        $set: {
+          meals: updatedMeals,
+          'summary.totalCalories': totalCalories,
+          updatedAt: new Date(),
+        },
+        $setOnInsert: { createdAt: new Date() }
+      },
+      { upsert: true }
+    );
+
+    return {
+      success: true,
+      date: formatDateISO(targetDate),
+      mealType: params.mealType,
+      foodItem: newFoodItem,
+      summary: { totalCalories },
+    };
+  } catch (error) {
+    return { error: 'Failed to log meal' };
+  }
+}
+
+export async function getStepCount(userId: any, params: { date?: string; startDate?: string; endDate?: string }) {
+  if (!client) return { error: 'Database not connected' };
+  try {
+    const db = client.db();
+    const collection = db.collection<DailyLog>('daily_log');
+
+    if (params.startDate || params.endDate) {
+      const start = normalizeDate(params.startDate);
+      const end = params.endDate ? normalizeDate(params.endDate) : normalizeDate();
+      end.setUTCHours(23, 59, 59, 999);
+
+      const logs = await collection.find({ userId, date: { $gte: start, $lte: end } }).sort({ date: 1 }).toArray();
+      const records = logs.map(doc => ({
+        date: formatDateISO(doc.date),
+        steps: doc.metrics?.steps ?? 0,
+      }));
+      return { records };
+    } else {
+      const targetDate = normalizeDate(params.date);
+      const log = await collection.findOne({ userId, date: targetDate });
+      return { date: formatDateISO(targetDate), steps: log?.metrics?.steps ?? 0 };
+    }
+  } catch (error) {
+    return { error: 'Failed to retrieve step count log' };
+  }
+}
+
+export async function setStepCount(userId: any, params: { steps: number; date?: string }) {
+  if (!client) return { error: 'Database not connected' };
+  try {
+    const db = client.db();
+    const collection = db.collection<DailyLog>('daily_log');
+    const targetDate = normalizeDate(params.date);
+
+    await collection.updateOne(
+      { userId, date: targetDate },
+      {
+        $set: { 'metrics.steps': params.steps, updatedAt: new Date() },
+        $setOnInsert: { createdAt: new Date() }
+      },
+      { upsert: true }
+    );
+    return { success: true, date: formatDateISO(targetDate), steps: params.steps };
+  } catch (error) {
+    return { error: 'Failed to log step count' };
+  }
+}
+

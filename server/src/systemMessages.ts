@@ -101,7 +101,200 @@ const systemMessages: SystemMessage[] = [
         - DISCLAIMER: Remind users that you are an AI assistant and not a medical doctor for diagnosis or treatment of serious medical conditions when appropriate.
         - CRITICAL AUDIO RULE: DO NOT use structural labels or brackets in your spoken output. Deliver your response as natural, seamless dialogue.
         - After asking a question or offering advice, wait for the user to respond. Stop speaking immediately to allow for a natural audio turn-taking flow.
-        - Listen closely to the user's goals, daily routine, or symptoms, and tailor your encouragement and advice to their specific context.`
+        - Listen closely to the user's goals, daily routine, or symptoms, and tailor your encouragement and advice to their specific context.
+        - Use function calls (get_weight, set_weight, get_blood_pressure, set_blood_pressure, get_meals, set_meal, get_step_count, set_step_count) whenever the user asks to view or log their weight, blood pressure, meals, or step count.`,
+    tools: [
+        {
+            type: 'function',
+            name: 'get_weight',
+            description: 'Get the user\'s logged weight history or latest recorded weight.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    date: {
+                        type: 'string',
+                        description: 'Optional ISO date string (YYYY-MM-DD) for a specific day. Defaults to today if no date or range is provided.'
+                    },
+                    startDate: {
+                        type: 'string',
+                        description: 'Optional start ISO date string (YYYY-MM-DD) for retrieving a date range (e.g., past week or month).'
+                    },
+                    endDate: {
+                        type: 'string',
+                        description: 'Optional end ISO date string (YYYY-MM-DD) for retrieving a date range.'
+                    }
+                },
+                required: []
+            }
+        },
+        {
+            type: 'function',
+            name: 'set_weight',
+            description: 'Log or update the user\'s weight.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    weight: {
+                        type: 'number',
+                        description: 'The weight value.'
+                    },
+                    unit: {
+                        type: 'string',
+                        description: 'Weight unit (e.g. kg, lbs).',
+                        enum: ['kg', 'lbs']
+                    },
+                    date: {
+                        type: 'string',
+                        description: 'Optional ISO date string (YYYY-MM-DD) to log weight for. Defaults to today.'
+                    }
+                },
+                required: ['weight']
+            }
+        },
+        {
+            type: 'function',
+            name: 'get_blood_pressure',
+            description: 'Get the user\'s recorded blood pressure readings.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    date: {
+                        type: 'string',
+                        description: 'Optional ISO date string (YYYY-MM-DD) for a specific day. Defaults to today if no date or range is provided.'
+                    },
+                    startDate: {
+                        type: 'string',
+                        description: 'Optional start ISO date string (YYYY-MM-DD) for retrieving a date range (e.g., past week or month).'
+                    },
+                    endDate: {
+                        type: 'string',
+                        description: 'Optional end ISO date string (YYYY-MM-DD) for retrieving a date range.'
+                    }
+                },
+                required: []
+            }
+        },
+        {
+            type: 'function',
+            name: 'set_blood_pressure',
+            description: 'Log a new blood pressure reading for the user.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    systolic: {
+                        type: 'number',
+                        description: 'Systolic blood pressure value (mmHg).'
+                    },
+                    diastolic: {
+                        type: 'number',
+                        description: 'Diastolic blood pressure value (mmHg).'
+                    },
+                    date: {
+                        type: 'string',
+                        description: 'Optional ISO date string (YYYY-MM-DD) to log blood pressure reading for. Defaults to today.'
+                    }
+                },
+                required: ['systolic', 'diastolic']
+            }
+        },
+        {
+            type: 'function',
+            name: 'get_meals',
+            description: 'Get the user\'s logged meals and dietary information.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    date: {
+                        type: 'string',
+                        description: 'Optional ISO date string (YYYY-MM-DD) for a specific day. Defaults to today if no date or range is provided.'
+                    },
+                    startDate: {
+                        type: 'string',
+                        description: 'Optional start ISO date string (YYYY-MM-DD) for retrieving a date range (e.g., past week or month).'
+                    },
+                    endDate: {
+                        type: 'string',
+                        description: 'Optional end ISO date string (YYYY-MM-DD) for retrieving a date range.'
+                    }
+                },
+                required: []
+            }
+        },
+        {
+            type: 'function',
+            name: 'set_meal',
+            description: 'Log a meal or food item for the user.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    mealType: {
+                        type: 'string',
+                        description: 'Type of meal.',
+                        enum: ['breakfast', 'lunch', 'snack', 'dinner']
+                    },
+                    foodItem: {
+                        type: 'string',
+                        description: 'Description or name of the food item.'
+                    },
+                    calories: {
+                        type: 'number',
+                        description: 'Calorie count for the food item.'
+                    },
+                    unit: {
+                        type: 'string',
+                        description: 'Optional portion size or serving unit.'
+                    },
+                    date: {
+                        type: 'string',
+                        description: 'Optional ISO date string (YYYY-MM-DD) to log meal for. Defaults to today.'
+                    }
+                },
+                required: ['mealType', 'foodItem', 'calories']
+            }
+        },
+        {
+            type: 'function',
+            name: 'get_step_count',
+            description: 'Get the user\'s recorded daily step count.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    date: {
+                        type: 'string',
+                        description: 'Optional ISO date string (YYYY-MM-DD) for a specific day. Defaults to today if no date or range is provided.'
+                    },
+                    startDate: {
+                        type: 'string',
+                        description: 'Optional start ISO date string (YYYY-MM-DD) for retrieving a date range (e.g., past week or month).'
+                    },
+                    endDate: {
+                        type: 'string',
+                        description: 'Optional end ISO date string (YYYY-MM-DD) for retrieving a date range.'
+                    }
+                },
+                required: []
+            }
+        },
+        {
+            type: 'function',
+            name: 'set_step_count',
+            description: 'Log or update the user\'s step count.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    steps: {
+                        type: 'number',
+                        description: 'Number of steps taken.'
+                    },
+                    date: {
+                        type: 'string',
+                        description: 'Optional ISO date string (YYYY-MM-DD) to log step count for. Defaults to today.'
+                    }
+                },
+                required: ['steps']
+            }
+        }
+    ]
     }
 ]
 

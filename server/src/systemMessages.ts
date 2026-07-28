@@ -1,4 +1,4 @@
-import { SystemMessage } from "./types.js";
+import { SystemMessage, DbUser } from "./types.js";
 
 const systemMessages: SystemMessage[] = [
     {
@@ -90,12 +90,254 @@ const systemMessages: SystemMessage[] = [
         
         - "I finally got around to watching that new sci-fi series everyone is talking about, but I'm still on the fence about it. Have you seen anything good lately, or are you more of a reader?"
         `
+    },
+    {
+    type: 'health-assistant',
+    initialInstructions: `Greet the user warmly as their Health Mate, and ask how you can help with their health, wellness, exercise, or nutrition goals today. Keep it supportive, friendly, and brief.`,
+    message: `You are Health Mate, an encouraging, supportive, and knowledgeable health and wellness assistant. Your goal is to help users track health habits, answer general nutrition and fitness questions, provide workout ideas, and offer wellness guidance in a friendly, conversational manner.
+
+        RULES:
+        - Provide supportive, clear, and actionable health, fitness, and wellness advice.
+        - DISCLAIMER: Remind users that you are an AI assistant and not a medical doctor for diagnosis or treatment of serious medical conditions when appropriate.
+        - CRITICAL AUDIO RULE: DO NOT use structural labels or brackets in your spoken output. Deliver your response as natural, seamless dialogue.
+        - After asking a question or offering advice, wait for the user to respond. Stop speaking immediately to allow for a natural audio turn-taking flow.
+        - Listen closely to the user's goals, daily routine, or symptoms, and tailor your encouragement and advice to their specific context.
+        - Use function calls (get_weight, set_weight, get_blood_pressure, set_blood_pressure, get_meals, set_meal, get_step_count, set_step_count) whenever the user asks to view or log their weight, blood pressure, meals, or step count.`,
+    tools: [
+        {
+            type: 'function',
+            name: 'get_weight',
+            description: 'Get the user\'s logged weight history or latest recorded weight.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    date: {
+                        type: 'string',
+                        description: 'Optional ISO date string (YYYY-MM-DD) for a specific day. Defaults to today if no date or range is provided.'
+                    },
+                    startDate: {
+                        type: 'string',
+                        description: 'Optional start ISO date string (YYYY-MM-DD) for retrieving a date range (e.g., past week or month).'
+                    },
+                    endDate: {
+                        type: 'string',
+                        description: 'Optional end ISO date string (YYYY-MM-DD) for retrieving a date range.'
+                    }
+                },
+                required: []
+            }
+        },
+        {
+            type: 'function',
+            name: 'set_weight',
+            description: 'Log or update the user\'s weight.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    weight: {
+                        type: 'number',
+                        description: 'The weight value.'
+                    },
+                    unit: {
+                        type: 'string',
+                        description: 'Weight unit (e.g. kg, lbs).',
+                        enum: ['kg', 'lbs']
+                    },
+                    date: {
+                        type: 'string',
+                        description: 'Optional ISO date string (YYYY-MM-DD) to log weight for. Defaults to today.'
+                    }
+                },
+                required: ['weight']
+            }
+        },
+        {
+            type: 'function',
+            name: 'get_blood_pressure',
+            description: 'Get the user\'s recorded blood pressure readings.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    date: {
+                        type: 'string',
+                        description: 'Optional ISO date string (YYYY-MM-DD) for a specific day. Defaults to today if no date or range is provided.'
+                    },
+                    startDate: {
+                        type: 'string',
+                        description: 'Optional start ISO date string (YYYY-MM-DD) for retrieving a date range (e.g., past week or month).'
+                    },
+                    endDate: {
+                        type: 'string',
+                        description: 'Optional end ISO date string (YYYY-MM-DD) for retrieving a date range.'
+                    }
+                },
+                required: []
+            }
+        },
+        {
+            type: 'function',
+            name: 'set_blood_pressure',
+            description: 'Log a new blood pressure reading for the user.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    systolic: {
+                        type: 'number',
+                        description: 'Systolic blood pressure value (mmHg).'
+                    },
+                    diastolic: {
+                        type: 'number',
+                        description: 'Diastolic blood pressure value (mmHg).'
+                    },
+                    date: {
+                        type: 'string',
+                        description: 'Optional ISO date string (YYYY-MM-DD) to log blood pressure reading for. Defaults to today.'
+                    }
+                },
+                required: ['systolic', 'diastolic']
+            }
+        },
+        {
+            type: 'function',
+            name: 'get_meals',
+            description: 'Get the user\'s logged meals and dietary information.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    date: {
+                        type: 'string',
+                        description: 'Optional ISO date string (YYYY-MM-DD) for a specific day. Defaults to today if no date or range is provided.'
+                    },
+                    startDate: {
+                        type: 'string',
+                        description: 'Optional start ISO date string (YYYY-MM-DD) for retrieving a date range (e.g., past week or month).'
+                    },
+                    endDate: {
+                        type: 'string',
+                        description: 'Optional end ISO date string (YYYY-MM-DD) for retrieving a date range.'
+                    }
+                },
+                required: []
+            }
+        },
+        {
+            type: 'function',
+            name: 'set_meal',
+            description: 'Log a meal or food item for the user.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    mealType: {
+                        type: 'string',
+                        description: 'Type of meal.',
+                        enum: ['breakfast', 'lunch', 'snack', 'dinner']
+                    },
+                    foodItem: {
+                        type: 'string',
+                        description: 'Description or name of the food item.'
+                    },
+                    calories: {
+                        type: 'number',
+                        description: 'Calorie count for the food item.'
+                    },
+                    unit: {
+                        type: 'string',
+                        description: 'Optional portion size or serving unit.'
+                    },
+                    date: {
+                        type: 'string',
+                        description: 'Optional ISO date string (YYYY-MM-DD) to log meal for. Defaults to today.'
+                    }
+                },
+                required: ['mealType', 'foodItem', 'calories']
+            }
+        },
+        {
+            type: 'function',
+            name: 'get_step_count',
+            description: 'Get the user\'s recorded daily step count.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    date: {
+                        type: 'string',
+                        description: 'Optional ISO date string (YYYY-MM-DD) for a specific day. Defaults to today if no date or range is provided.'
+                    },
+                    startDate: {
+                        type: 'string',
+                        description: 'Optional start ISO date string (YYYY-MM-DD) for retrieving a date range (e.g., past week or month).'
+                    },
+                    endDate: {
+                        type: 'string',
+                        description: 'Optional end ISO date string (YYYY-MM-DD) for retrieving a date range.'
+                    }
+                },
+                required: []
+            }
+        },
+        {
+            type: 'function',
+            name: 'set_step_count',
+            description: 'Log or update the user\'s step count.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    steps: {
+                        type: 'number',
+                        description: 'Number of steps taken.'
+                    },
+                    date: {
+                        type: 'string',
+                        description: 'Optional ISO date string (YYYY-MM-DD) to log step count for. Defaults to today.'
+                    }
+                },
+                required: ['steps']
+            }
+        }
+    ]
     }
 ]
 
-export function getSystemMessage(type: string): SystemMessage | null {
-    const systemMessage = systemMessages.find((systemMessage) => systemMessage.type === type);
-    return systemMessage || null;
+export function getSystemMessage(type: string, user?: DbUser | null): SystemMessage | null {
+    const baseMessage = systemMessages.find((systemMessage) => systemMessage.type === type);
+    if (!baseMessage) return null;
+
+    // Return a clone to avoid mutating the template
+    const systemMessage: SystemMessage = JSON.parse(JSON.stringify(baseMessage));
+
+    if (type === 'health-assistant') {
+        const todayDate = new Date().toISOString().split('T')[0];
+        const todayFormatted = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        
+        let contextBlock = `
+
+DATE & TIME CONTEXT:
+- Today's Date: ${todayFormatted} (${todayDate})`;
+
+        if (user) {
+            const birthdayStr = user.birthday ? new Date(user.birthday).toISOString().split('T')[0] : 'N/A';
+            contextBlock += `
+
+USER PROFILE CONTEXT:
+- Nickname: ${user.nickname}
+- Gender: ${user.gender || 'N/A'}
+- Birthday: ${birthdayStr}
+- Height: ${user.height || 'N/A'}
+- Email: ${user.email}
+
+PERSONALIZATION INSTRUCTIONS:
+- Address the user by their nickname "${user.nickname}" in your initial greeting and naturally throughout your conversation.
+- Use the user's age/birthday, gender, and height context to provide age-appropriate, gender-appropriate, and height/physical metric tailored health, nutrition, and exercise recommendations when relevant.`;
+
+            if (user.nickname) {
+                systemMessage.initialInstructions = `Greet ${user.nickname} warmly as their Health Mate, addressing them directly by their nickname "${user.nickname}", and ask how you can help with their health, wellness, exercise, or nutrition goals today. Keep it supportive, friendly, and brief.`;
+            }
+        }
+
+        systemMessage.message += contextBlock;
+    }
+
+    return systemMessage;
 }
 
 

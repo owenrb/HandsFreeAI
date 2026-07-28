@@ -4,8 +4,18 @@ import { DefaultAzureCredential } from '@azure/identity';
 import { OpenAIRealtimeWS } from 'openai/beta/realtime/ws';
 import { config } from 'dotenv';
 import * as crypto from 'crypto';
-import { AudioMetrics, SystemMessage, WSMessage, OpenAIError, RateLimits } from './types.js';
+import { AudioMetrics, SystemMessage, WSMessage, OpenAIError, RateLimits, DbUser } from './types.js';
 import { AzureOpenAI } from 'openai';
+import {
+  getWeight,
+  setWeight,
+  getBloodPressure,
+  setBloodPressure,
+  getMeals,
+  setMeal,
+  getStepCount,
+  setStepCount
+} from './db.js';
 config({ path: '../.env' });
 
 const {
@@ -87,7 +97,8 @@ export class RTSession {
   constructor(
     private readonly clientWs: WebSocket,
     private readonly logger: Logger,
-    private systemMessage: SystemMessage | null
+    private systemMessage: SystemMessage | null,
+    private readonly user?: DbUser | null
   ) {
     if (!this.systemMessage) throw new Error('🔥 System message is required');
 
@@ -610,19 +621,53 @@ export class RTSession {
     }
   }
 
-  private handleFunctionCallArgumentsDone({ call_id, arguments: args }: { call_id: string; arguments: string }) {
+  private async handleFunctionCallArgumentsDone({ call_id, name, arguments: args }: { call_id: string; name?: string; arguments: string }) {
     try {
-      this.logger.debug({ call_id, arguments: args }, '✅ Function call arguments completed');
-      if (args) {
-        this.send({
-          type: 'control',
-          action: 'function_call_output',
-          id: call_id,
-          functionCallParams: args
-        });
-      } else {
-        this.logger.warn({ call_id }, '🟠 No arguments provided in function call arguments done event');
+      this.logger.info({ call_id, name, arguments: args }, '✅ Function call arguments completed');
+      const parsedArgs = args ? JSON.parse(args) : {};
+      const userId = this.user?._id || this.user?.email || 'guest';
+
+      let result: any = { error: 'Unknown function' };
+
+      if (name === 'get_weight') {
+        result = await getWeight(userId, parsedArgs);
+      } else if (name === 'set_weight') {
+        result = await setWeight(userId, parsedArgs);
+      } else if (name === 'get_blood_pressure') {
+        result = await getBloodPressure(userId, parsedArgs);
+      } else if (name === 'set_blood_pressure') {
+        result = await setBloodPressure(userId, parsedArgs);
+      } else if (name === 'get_meals') {
+        result = await getMeals(userId, parsedArgs);
+      } else if (name === 'set_meal') {
+        result = await setMeal(userId, parsedArgs);
+      } else if (name === 'get_step_count') {
+        result = await getStepCount(userId, parsedArgs);
+      } else if (name === 'set_step_count') {
+        result = await setStepCount(userId, parsedArgs);
       }
+
+      const outputStr = JSON.stringify(result);
+
+      if (this.openAIWs && this.openAIWs.readyState === WebSocket.OPEN) {
+        this.openAIWs.send(JSON.stringify({
+          type: 'conversation.item.create',
+          item: {
+            type: 'function_call_output',
+            call_id: call_id,
+            output: outputStr
+          }
+        }));
+        this.openAIWs.send(JSON.stringify({ type: 'response.create' }));
+        this.logger.info({ call_id, name, output: outputStr }, '✅ Function call output sent to OpenAI');
+      }
+
+      this.send({
+        type: 'control',
+        action: 'function_call_output',
+        id: call_id,
+        functionCallParams: JSON.stringify({ name, arguments: parsedArgs, result })
+      });
     } catch (error) {
       this.logger.error({ error, call_id }, '🔥 Error processing completed function call arguments');
     }

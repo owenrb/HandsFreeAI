@@ -125,13 +125,13 @@ Multi-platform images must be pushed to a registry (like Docker Hub) to be store
 **Server:**
 ```bash
 cd server
-docker buildx build --platform linux/amd64,linux/arm64/v8 -t owenrbee/hands-free-api:latest  -t owenrbee/hands-free-api:1.2.0 --push .
+docker buildx build --platform linux/amd64,linux/arm64/v8 -t owenrbee/hands-free-api:latest  -t owenrbee/hands-free-api:1.3.0 --push .
 ```
 
 **Frontend:**
 ```bash
 cd frontend
-docker buildx build --platform linux/amd64,linux/arm64/v8 -t owenrbee/hands-free-ux:latest -t owenrbee/hands-free-ux:1.2.0 --push .
+docker buildx build --platform linux/amd64,linux/arm64/v8 -t owenrbee/hands-free-ux:latest -t owenrbee/hands-free-ux:1.3.0 --push .
 ```
 
 ## Deploying as ACA

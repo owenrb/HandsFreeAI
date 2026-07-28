@@ -22,7 +22,7 @@ export type SystemMessageTool = {
 }
 
 export type SystemMessage = {
-    type: 'language-coach' | 'tech-chitchat-companion' | 'small-talk-companion';
+    type: 'language-coach' | 'tech-chitchat-companion' | 'small-talk-companion' | 'health-assistant';
     initialInstructions: string;
     message: string;
     tools?: SystemMessageTool[];
@@ -53,3 +53,58 @@ export type RateLimits = {
     remaining: number;
     reset_seconds: number;
 }
+
+export type UserGender = 'Male' | 'Female' | 'Non-binary' | 'Other';
+
+export type DbUser = {
+    _id?: any;
+    email: string;
+    nickname: string;
+    gender: UserGender;
+    birthday: Date;
+    height?: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+export type BloodPressureReading = {
+    systolic: number;
+    diastolic: number;
+    timestamp: Date;
+}
+
+export type HealthMetrics = {
+    weight?: number;
+    steps?: number;
+    bloodPressure?: BloodPressureReading[];
+}
+
+export type FoodItem = {
+    foodItem: string;
+    unit: string;
+    calories: number;
+}
+
+export type Meals = {
+    breakfast?: FoodItem[];
+    lunch?: FoodItem[];
+    snack?: FoodItem[];
+    dinner?: FoodItem[];
+}
+
+export type DailySummary = {
+    totalCalories?: number;
+}
+
+export type DailyLog = {
+    _id?: any;
+    userId: any;
+    date: Date;
+    metrics?: HealthMetrics;
+    meals?: Meals;
+    summary?: DailySummary;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+

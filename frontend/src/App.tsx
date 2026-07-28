@@ -25,6 +25,7 @@ function Page({ label, onBack, user }: PageProps) {
   const systemMessageType: SystemMessageType = 
     label === 'Articulation Coach' ? 'language-coach' :
     label === 'Tech Chit-Chat' ? 'tech-chitchat-companion' :
+    label === 'Health Mate' ? 'health-assistant' :
     'small-talk-companion';
 
   const {
@@ -482,6 +483,7 @@ function App() {
   const [activePage, setActivePage] = useState<string | null>(null)
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isMongoConnected, setIsMongoConnected] = useState<boolean>(false)
 
   console.log('App State - User:', user, 'Loading:', loading, 'ActivePage:', activePage);
 
@@ -503,7 +505,23 @@ function App() {
         setLoading(false);
       }
     };
+    const checkHealth = async () => {
+      try {
+        const res = await fetch('/health');
+        if (res.ok) {
+          const data = await res.json();
+          setIsMongoConnected(data.mongodb === 'connected');
+        } else {
+          setIsMongoConnected(false);
+        }
+      } catch (err) {
+        console.error('Health check failed', err);
+        setIsMongoConnected(false);
+      }
+    };
+
     void checkAuth();
+    void checkHealth();
   }, []);
 
   const handleLogout = async () => {
@@ -560,6 +578,20 @@ function App() {
           className="px-6 py-3 bg-indigo-500 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-opacity-75 transition duration-300 transform hover:scale-105"
         >
           Small Talk Companion
+        </button>
+      </div>
+      <div className="flex gap-4">
+        <button
+          onClick={() => setActivePage('Health Mate')}
+          disabled={!isMongoConnected}
+          title={isMongoConnected ? 'Health Mate' : 'Health Mate requires MongoDB connection'}
+          className={`px-6 py-3 font-semibold rounded-lg shadow-md transition duration-300 transform ${
+            isMongoConnected
+              ? 'bg-emerald-500 text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-opacity-75 hover:scale-105'
+              : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-60'
+          }`}
+        >
+          Health Mate {!isMongoConnected && '(Offline)'}
         </button>
       </div>
     </div>

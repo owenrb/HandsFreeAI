@@ -16,6 +16,16 @@ services:
       - ALLOWED_GMAIL_ACCOUNTS=${ALLOWED_GMAIL_ACCOUNTS}
       - SESSION_KEY=${SESSION_KEY}
       - FRONTEND_URL=${FRONTEND_URL}
+      - MONGODB_HOST=${MONGODB_HOST}
+      - MONGODB_URL=${MONGODB_URL}
+      - MONGODB_USER=${MONGODB_USER}
+      - MONGODB_PASSWORD=${MONGODB_PASSWORD}
+      - SEED_USER_ENABLE=${SEED_USER_ENABLE}
+      - SEED_USER_EMAIL=${SEED_USER_EMAIL}
+      - SEED_USER_NICKNAME=${SEED_USER_NICKNAME}
+      - SEED_USER_GENDER=${SEED_USER_GENDER}
+      - SEED_USER_BIRTHDAY=${SEED_USER_BIRTHDAY}
+      - SEED_USER_HEIGHT=${SEED_USER_HEIGHT}
     restart: always
 
   frontend:
@@ -28,3 +38,16 @@ services:
     restart: always
     depends_on:
       - server
+
+  mongo-express:
+    image: mongo-express:latest
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_URL=mongodb+srv://${MONGODB_USER}:${MONGODB_PASSWORD}@${MONGODB_HOST}/?tls=true&authMechanism=SCRAM-SHA-256&retrywrites=false&maxIdleTimeMS=120000
+      - ME_CONFIG_MONGODB_SSL=true
+      - ME_CONFIG_MONGODB_ENABLE_ADMIN=false
+      - ME_CONFIG_BASICAUTH_USERNAME=${ME_CONFIG_BASICAUTH_USERNAME:-admin}
+      - ME_CONFIG_BASICAUTH_PASSWORD=${ME_CONFIG_BASICAUTH_PASSWORD:-pass}
+    restart: always
+

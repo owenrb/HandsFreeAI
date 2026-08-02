@@ -14,6 +14,7 @@ import { initMongoDB, closeMongoDB, getMongoClient, getUserByEmail } from './db.
 // Load .env from current directory or project root
 dotenv.config();
 dotenv.config({ path: path.join(process.cwd(), '..', '.env') });
+process.env.TZ = process.env.TZ || 'Asia/Manila';
 
 const PORT = process.env.PORT || 8080;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;

@@ -128,8 +128,7 @@ export async function getDailyLogForUser(userId: any, date?: Date): Promise<Dail
 
   try {
     const db = client.db();
-    const targetDate = date ? new Date(date) : new Date();
-    targetDate.setUTCHours(0, 0, 0, 0);
+    const targetDate = date ? normalizeDate(date.toISOString()) : normalizeDate();
 
     const log = await db.collection<DailyLog>('daily_log').findOne({
       userId,
@@ -148,20 +147,30 @@ export async function closeMongoDB(): Promise<void> {
   }
 }
 
-export function normalizeDate(dateStr?: string): Date {
-  const d = dateStr ? new Date(dateStr) : new Date();
-  if (isNaN(d.getTime())) {
-    const fallback = new Date();
-    fallback.setUTCHours(0, 0, 0, 0);
-    return fallback;
+export function getLocalDateString(date?: Date | string, timeZone: string = process.env.TZ || 'Asia/Manila'): string {
+  const d = date ? (typeof date === 'string' ? new Date(date) : date) : new Date();
+  const validDate = isNaN(d.getTime()) ? new Date() : d;
+  return new Intl.DateTimeFormat('en-CA', { timeZone }).format(validDate);
+}
+
+export function normalizeDate(dateStr?: string, timeZone: string = process.env.TZ || 'Asia/Manila'): Date {
+  if (dateStr) {
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      const yyyymmdd = dateStr.match(/^\d{4}-\d{2}-\d{2}/)
+        ? dateStr.substring(0, 10)
+        : getLocalDateString(d, timeZone);
+      return new Date(`${yyyymmdd}T00:00:00.000Z`);
+    }
   }
-  d.setUTCHours(0, 0, 0, 0);
-  return d;
+  const todayStr = getLocalDateString(new Date(), timeZone);
+  return new Date(`${todayStr}T00:00:00.000Z`);
 }
 
 function formatDateISO(date: Date): string {
   return date.toISOString().split('T')[0];
 }
+
 
 export async function getWeight(userId: any, params: { date?: string; startDate?: string; endDate?: string }) {
   if (!client) return { error: 'Database not connected' };

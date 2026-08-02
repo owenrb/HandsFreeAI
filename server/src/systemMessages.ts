@@ -1,4 +1,6 @@
 import { SystemMessage, DbUser } from "./types.js";
+import { getLocalDateString } from "./db.js";
+
 
 const systemMessages: SystemMessage[] = [
     {
@@ -306,13 +308,17 @@ export function getSystemMessage(type: string, user?: DbUser | null): SystemMess
     const systemMessage: SystemMessage = JSON.parse(JSON.stringify(baseMessage));
 
     if (type === 'health-assistant') {
-        const todayDate = new Date().toISOString().split('T')[0];
-        const todayFormatted = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        const timeZone = process.env.TZ || 'Asia/Manila';
+        const now = new Date();
+        const todayDate = getLocalDateString(now, timeZone);
+        const todayFormatted = now.toLocaleDateString('en-US', { timeZone, year: 'numeric', month: 'long', day: 'numeric' });
         
         let contextBlock = `
 
 DATE & TIME CONTEXT:
-- Today's Date: ${todayFormatted} (${todayDate})`;
+- Today's Date: ${todayFormatted} (${todayDate})
+- Timezone: ${timeZone} (+08:00)`;
+
 
         if (user) {
             const birthdayStr = user.birthday ? new Date(user.birthday).toISOString().split('T')[0] : 'N/A';

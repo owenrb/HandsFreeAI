@@ -26,6 +26,7 @@ services:
       - SEED_USER_GENDER=${SEED_USER_GENDER}
       - SEED_USER_BIRTHDAY=${SEED_USER_BIRTHDAY}
       - SEED_USER_HEIGHT=${SEED_USER_HEIGHT}
+      - TZ=${TZ:-Asia/Manila}
     restart: always
 
   frontend:
@@ -49,5 +50,7 @@ services:
       - ME_CONFIG_MONGODB_ENABLE_ADMIN=false
       - ME_CONFIG_BASICAUTH_USERNAME=${ME_CONFIG_BASICAUTH_USERNAME:-admin}
       - ME_CONFIG_BASICAUTH_PASSWORD=${ME_CONFIG_BASICAUTH_PASSWORD:-pass}
+      - TZ=${TZ:-Asia/Manila}
     restart: always
+
 
